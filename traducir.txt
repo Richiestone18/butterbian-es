@@ -1,0 +1,91 @@
+@@V base=bb7ee4e probado=d63645d72a49 version=3
+@@K mod=shift+ctrl key=0 "" Diseno: espiral
+@@K mod=shift+ctrl key=1 "" Diseno: dwindle (cascada)
+@@K mod=shift+ctrl key=2 "" Diseno: mosaico
+@@K mod=shift+ctrl key=3 "" Diseno: columnas
+@@K mod=shift+ctrl key=4 "" Diseno: centrada
+@@K mod=shift+ctrl key=5 "" Diseno: flotante
+@@K mod=shift+ctrl key=6 "" Diseno: pila
+@@K mod=shift+ctrl key=7 "" Diseno: rejilla
+@@K mod=shift+ctrl key=8 "" Diseno: baraja
+@@K mod=super key=space desc="!App launcher (the bar's; rofi when the bar is down)" !Lanzador de aplicaciones (la barra; rofi cuando la barra está abajo)
+@@K mod=super key=b desc=Browser Navegador
+@@K mod=super+shift key=b desc="Browser (private window)" Navegador (ventana privada)
+@@K mod=super key=c desc="Helium browser" Navegador Helium
+@@K mod=super+shift key=c desc="Helium browser (incognito)" Navegador Helium (incógnito)
+@@K mod=super key=f desc="File manager" Gestor de archivos
+@@K mod=super key=g desc="GIMP (opens on tag 9)" GIMP (se abre en etiqueta 9)
+@@K mod=super key=d desc="Discord (opens on tag 8)" Discord (se abre en etiqueta 8)
+@@K mod=super key=o desc="OBS (opens on tag 10)" OBS (se abre en etiqueta 10)
+@@K mod=super key=/ desc=Keybindings Atajos de teclado
+@@K mod=super key=Tab desc="!Window switcher (the bar's; rofi when the bar is down)" !Cambiador de ventanas (la barra; rofi cuando la barra está abajo)
+@@K mod=super+shift key=p desc="Wallpaper picker (re-themes the desktop from the image)" Selector de fondo de pantalla (re-tematiza el escritorio desde la imagen)
+@@K mod=super+shift key=m desc=Command menu Menú de comandos
+@@K mod=super+shift key=l desc="Layout settings" Configuración de diseño
+@@K mod=super+shift key=n desc="Network app (Super+n is window-follow)" Aplicación de red (Super+n es ventana-sigue)
+@@K mod=super key=x desc="Power menu" Menú de energía
+@@K mod=super key=q desc="!Close window" !Cerrar ventana
+@@K mod=super key=j desc="Focus next window" Enfocar siguiente ventana
+@@K mod=super key=k desc="Focus previous window" Enfocar ventana anterior
+@@K mod=super key=Right desc="Focus next window" Enfocar siguiente ventana
+@@K mod=super key=Left desc="Focus previous window" Enfocar ventana anterior
+@@K mod=super+shift key=j desc="Move window down the stack" Mover ventana abajo en la pila
+@@K mod=super+shift key=k desc="Move window up the stack" Mover ventana arriba en la pila
+@@K mod=super+shift key=Right desc="Move window down the stack" Mover ventana abajo en la pila
+@@K mod=super+shift key=Left desc="Move window up the stack" Mover ventana arriba en la pila
+@@K mod=super+shift key=f desc=Fullscreen Pantalla completa
+@@K mod=super+shift key=space desc="Toggle floating" Alternar flotante
+@@K mod=super key=y desc="Sticky (show on all tags)" Anclar (mostrar en todas las etiquetas)
+@@K mod=super key=n desc="Window follows on tag / monitor send" La ventana sigue en etiqueta / enviar a monitor
+@@K mod=super+ctrl key=b desc="Toggle the native bar" Alternar barra nativa
+@@K mod=super key=w desc="Tab attach: focused window into a tab group on this monitor" Pestaña adjuntar: ventana enfocada en un grupo de pestañas en este monitor
+@@K mod=super+shift key=w desc="Tab detach: focused window out of its tab group" Pestaña separar: ventana enfocada fuera de su grupo de pestañas
+@@K mod=super key=h desc="!Shrink master (or column)" !Reducir maestro (o columna)
+@@K mod=super key=l desc="!Grow master (or column)" !Aumentar maestro (o columna)
+@@K mod=super+ctrl key=Left desc="Shrink master (or column)" Reducir maestro (o columna)
+@@K mod=super+ctrl key=Right desc="Grow master (or column)" Aumentar maestro (o columna)
+@@K mod=super key=semicolon desc="Reset master and column factors" Restablecer factores de maestro y columna
+@@K mod=super+alt key=Tab desc="Master count +1" Conteo maestro +1
+@@K mod=super+alt+shift key=Tab desc="Master count -1" Conteo maestro -1
+@@K mod=super key=apostrophe desc="Previously viewed tag" Etiqueta vista previamente
+@@K mod=ctrl+shift key=Left desc="Previous tag" Etiqueta anterior
+@@K mod=ctrl+shift key=Right desc="Next tag" Siguiente etiqueta
+@@K mod=alt+ctrl key=Left desc="Send window to previous tag" Enviar ventana a etiqueta anterior
+@@K mod=alt+ctrl key=Right desc="Send window to next tag" Enviar ventana a siguiente etiqueta
+@@K mod=super key=comma desc="Focus previous monitor" Enfocar monitor anterior
+@@K mod=super key=period desc="Focus next monitor" Enfocar siguiente monitor
+@@K mod=super+shift key=comma desc="Send window to previous monitor" Enviar ventana a monitor anterior
+@@K mod=super+shift key=period desc="Send window to next monitor" Enviar ventana a monitor siguiente
+@@K mod=super key=grave desc="!Drop-down terminal" !Terminal desplegable
+@@K mod=super+alt+shift key=s desc="Make this window the drop-down terminal" Hacer que esta ventana sea la terminal desplegable
+@@K mod=super+alt+shift key=grave desc="Take this window out of its slot" Sacar esta ventana de su ranura
+@@K mod=super+alt key=0 desc="!Toggle gaps" !Alternar huecos
+@@K mod=super+alt+shift key=0 desc="Reset gaps to defaults" Restablecer huecos a valores predeterminados
+@@K mod=super+alt key=u desc="All gaps +1" Todos los huecos +1
+@@K mod=super+alt+shift key=u desc="All gaps -1" Todos los huecos -1
+@@K mod=super+alt key=i desc="Inner gaps +1" Huecos internos +1
+@@K mod=super+alt+shift key=i desc="Inner gaps -1" Huecos internos -1
+@@K mod=super+alt key=o desc="Outer gaps +1" Huecos externos +1
+@@K mod=super+alt+shift key=o desc="Outer gaps -1" Huecos externos -1
+@@K mod=super+alt key=h desc="Inner horizontal gaps +1" Huecos internos horizontales +1
+@@K mod=super+alt+shift key=h desc="Inner horizontal gaps -1" Huecos internos horizontales -1
+@@K mod=super+alt key=j desc="Inner vertical gaps +1" Huecos internos verticales +1
+@@K mod=super+alt+shift key=j desc="Inner vertical gaps -1" Huecos internos verticales -1
+@@K mod=super+alt key=l desc="Outer horizontal gaps +1" Huecos externos horizontales +1
+@@K mod=super+alt+shift key=l desc="Outer horizontal gaps -1" Huecos externos horizontales -1
+@@K mod=super+alt key=k desc="Outer vertical gaps +1" Huecos externos verticales +1
+@@K mod=super+alt+shift key=k desc="Outer vertical gaps -1" Huecos externos verticales -1
+@@K mod=super key=F12 desc="Volume up" Volumen arriba
+@@K mod=super key=F11 desc="Volume down" Volumen abajo
+@@K mod=super key=F10 desc=Mute Silenciar
+@@K mod=none key=XF86AudioRaiseVolume desc="Volume up" Volumen arriba
+@@K mod=none key=XF86AudioLowerVolume desc="Volume down" Volumen abajo
+@@K mod=none key=XF86AudioMute desc=Mute Silenciar
+@@K mod=none key=XF86MonBrightnessUp desc="Brightness up" Brillo arriba
+@@K mod=none key=XF86MonBrightnessDown desc="Brightness down" Brillo abajo
+@@K mod=super+shift key=s desc="Screenshot: region (flameshot's editor)" Captura: región (editor de flameshot)
+@@K mod=super key=s desc="Screenshot: full screen" Captura: pantalla completa
+@@K mod=super key=Escape desc="!Apply this file: regenerate, rebuild and restart dwm in place" !Aplicar este archivo: regenerar, reconstruir y reiniciar dwm en su lugar
+@@K mod=super+shift key=r desc="Restart dwm (keeps windows and tags)" Reiniciar dwm (mantiene ventanas y etiquetas)
+@@K mod=super+ctrl key=r desc="Restart the bar" Reiniciar la barra
+@@K mod=super+shift key=q desc="Quit dwm" Salir de dwm

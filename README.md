@@ -4,42 +4,27 @@ Traduce al español la barra de **Quickshell** y su **app de red** del setup
 `suckless` (dwm + quickshell) de **Butterbian / JustAGuy Linux**, más el panel
 de atajos de dwm. Incluye dos arreglos de paso.
 
-Pensado para dejarlo listo en segundos al instalar el sistema en otra máquina.
+Diseñado para dejarlo listo en segundos al instalar el sistema en otra máquina,
+sin sobrescribir los atajos o descs que tú hayas editado.
 
 ## Instalación rápida
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/__REPO_SLUG__/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/Richiestone18/butterbian-es/main/install.sh -o install.sh
 chmod +x install.sh
-./install.sh
+./install.sh              # aplica la traducción
+./install.sh --check      # solo compara, no escribe nada
+./install.sh --restore    # deshace el último cambio
 ```
 
 O en un solo paso, sin dejar el archivo:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/__REPO_SLUG__/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Richiestone18/butterbian-es/main/install.sh | sh
 ```
 
 Antes de tocar nada el script guarda tu configuración actual en
 `~/butterbian-es-backup-FECHA.tar.gz` y al final reinicia la barra.
-
-## Opciones
-
-```sh
-./install.sh --check     # solo compara, no escribe nada
-./install.sh             # aplica la traducción
-./install.sh --restore   # vuelve atrás con el último backup
-./install.sh --help
-```
-
-Si prefieres el repo entero (para revisar o editar antes):
-
-```sh
-git clone https://github.com/__REPO_SLUG__.git
-cd butterbian-es
-./traducir-butterbian-es.sh --check
-./traducir-butterbian-es.sh
-```
 
 ## Qué traduce
 
@@ -51,6 +36,8 @@ cd butterbian-es
   compartir por QR, Bluetooth, Tailscale y todos los mensajes de estado.
 - **dwm/keybinds.conf**: descripción de **todos** los atajos, incluidos los 12
   diseños, ver/enviar/alternar etiquetas y las 18 ranuras scratch.
+- Cada descripción de atajo se cambia **solo si coincide con la original**;
+  si ya la editaste, se respeta tu versión.
 
 ## Arreglos que también aplica
 
@@ -61,7 +48,20 @@ cd butterbian-es
    real no hay aviso.
 2. **Reloj en inglés.** `Qt.formatDateTime()` ignora el locale aunque
    `LANG=es_MX.UTF-8` esté puesto, y devolvía `Fri 23 Oct 6:45 pm`. Ahora usa
-   `Date.toLocaleString()/toLocaleTimeString()` y muestra `vie 23 oct 6:48 p.m.`.
+   `Date.toLocaleString()/toLocaleTimeString()` y muestra
+   `vie 23 oct 6:48 p.m.`.
+
+## Cómo funciona (v3)
+
+El script copia los archivos ya traducidos de la barra (`quickshell/` y
+`quickshell-network/`) desde el `payload/` del repo, sobrescribiendo los que
+ya haya. Para `dwm/keybinds.conf`, traduce las descripciones (`desc=`) de los
+atajos **solo si coinciden con el inglés original** — si ya editaste un desc,
+se respeta tu versión.
+
+Así aguanta las actualizaciones de `setup-update` sin desajustarse: los
+archivos de la barra se renuevan entero, y los desc de atajos solo se tocan
+cuando coinciden con el original.
 
 ## Requisitos
 
@@ -78,20 +78,15 @@ cd butterbian-es
 - El título interno de la ventana de red sigue siendo `Network`: dwm la flota
   y centra por ese título (`rules.conf`), así que no se traduce.
 - `Wired connection 1` es el nombre del perfil de NetworkManager, no texto de
-  la app. Si lo quieres en español:
+  la interfaz. Si lo quieres en español:
   `sudo nmcli connection modify "Wired connection 1" connection.id "Conexión cableada 1"`
-- Si Butterbian actualiza su versión de la config, el script reemplaza los
-  archivos por la versión traducida. El backup previo te permite comparar o
-  volver atrás con `--restore`.
-- Para relanzar la barra a mano por SSH, exporta el locale o la fecha saldrá
-  en inglés:
-  `LANG=es_MX.UTF-8 LC_ALL=es_MX.UTF-8 ~/.config/suckless/scripts/bar restart`
 
 ## Estructura
 
 ```
 install.sh                  instalador (curl + chmod + ./install.sh)
 traducir-butterbian-es.sh   script principal (aplicar / --check / --restore)
+traducir.txt                data file con las desc= de atajos (solo keybinds.conf)
 payload/config/suckless/    archivos ya traducidos (quickshell, quickshell-network, dwm)
 ```
 

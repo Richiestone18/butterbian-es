@@ -18,10 +18,11 @@ trap 'rm -rf "$TMP"' EXIT INT TERM
 
 printf 'Descargando %s (%s)...\n' "$REPO" "$BRANCH"
 curl -fsSL "https://codeload.github.com/${REPO}/tar.gz/refs/heads/${BRANCH}" \
-    | tar xz -C "$TMP"
+    | tar xz -C "$TMP" || { echo "ERROR: no pude descargar $REPO (revisa la conexión o el nombre del repo)" >&2; exit 1; }
+
 DIR=$(find "$TMP" -maxdepth 1 -mindepth 1 -type d | head -1)
 [ -n "$DIR" ] && [ -f "$DIR/traducir-butterbian-es.sh" ] \
     || { echo "ERROR: el paquete descargado no trae traducir-butterbian-es.sh" >&2; exit 1; }
 
-# el script ve payload/ junto a el, asi que trabaja sin volver a descargar nada
+# el script ve traducir.txt junto a el, asi que trabaja sin volver a descargar nada
 exec sh "$DIR/traducir-butterbian-es.sh" "$@"
