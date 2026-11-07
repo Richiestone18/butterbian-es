@@ -1,0 +1,231 @@
+#!/bin/sh
+# keybinds — every bind in dwm/keybinds.conf as rows for the bar's keybinds
+# popup (quickshell/KeybindsPopup.qml), one per line, tab-separated:
+#   section  keys  description  line  kind (run|do)  command
+# keys: alternatives split by "|", each one "+"-joined keycaps.
+#   keybinds                 print the rows
+#   keybinds open N          open keybinds.conf in the editor at line N
+# The popup's editor (every write is tried through keybinds-gen first; a
+# bad bind is reported and the file left alone):
+#   keybinds get N           line N as fields: mod  key  desc  run|do  value
+#   keybinds set N MOD KEY DESC KIND VALUE     rewrite line N
+#   keybinds add SECTION MOD KEY DESC KIND VALUE   new bind at the end of
+#                            its section (a new section goes at the end);
+#                            prints the new line number
+#   keybinds delete N        drop line N
+#   keybinds check           run the generator; its complaints, if any
+#   keybinds apply           scripts/keybinds-apply (rebuild + restart dwm)
+# Binds with the same description in a section share a row (j and Left,
+# F12 and the volume key); runs of tag / layout / slot binds fold into one
+# ("View tag 1…="). A description starting with "!" is pinned: it comes
+# first in its section, without the mark.
+C="$(dirname "$(dirname "$(readlink -f "$0")")")"
+CONF="$C/dwm/keybinds.conf"
+
+GEN="$C/scripts/keybinds-gen"
+DEF="$C/dwm/config.def.h"
+
+# one bind as a keybinds.conf line, values quoted when they need it
+fmt() {
+    awk -v m="$1" -v k="$2" -v d="$3" -v kind="$4" -v v="$5" '
+    function q(s) {
+        if (s ~ /^[A-Za-z0-9_.\/+~:-]+$/) return s
+        if (index(s, "\"") == 0) return "\"" s "\""
+        return "\047" s "\047"
+    }
+    BEGIN {
+        if (m == "") m = "none"
+        printf "mod=%-16s key=%-20s %-44s %s=%s\n", m, k, (d != "" ? "desc=" q(d) : ""), kind, q(v)
+    }' | sed 's/[ \t]*$//'
+}
+
+# write the candidate file if the generator accepts it
+commit() {
+    if "$GEN" "$1" "$DEF" >/dev/null 2>"$1.err"; then
+        rm -f "$1.err"; mv "$1" "$CONF"; return 0
+    fi
+    cat "$1.err" >&2; rm -f "$1" "$1.err"; return 1
+}
+
+case "${1:-}" in
+open)
+    if command -v geany >/dev/null 2>&1; then exec geany --line="${2:-1}" "$CONF"; fi
+    exec xdg-open "$CONF"
+    ;;
+get)
+    exec awk -v n="${2:?line}" '
+    function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+    NR == n {
+        rest = trim($0); kind = ""; val = ""; mod = "none"; key = ""; desc = ""
+        while (rest != "") {
+            if (match(rest, /^[a-z]+=/) == 0) exit 1
+            name = substr(rest, 1, RLENGTH - 1); rest = substr(rest, RLENGTH + 1)
+            c = substr(rest, 1, 1)
+            if (c == "\"" || c == "\047") { i = index(substr(rest, 2), c); v = substr(rest, 2, i - 1); rest = substr(rest, i + 2) }
+            else { i = match(rest, /[ \t]/); v = i ? substr(rest, 1, i - 1) : rest; rest = i ? substr(rest, i) : "" }
+            if (name == "mod") mod = v; else if (name == "key") key = v; else if (name == "desc") desc = v
+            else if (name == "run" || name == "do") { kind = name; val = v }
+            rest = trim(rest)
+        }
+        printf "%s\t%s\t%s\t%s\t%s\n", mod, key, desc, kind, val
+        exit
+    }' "$CONF"
+    ;;
+set)
+    n="${2:?line}"; line=$(fmt "$3" "$4" "$5" "$6" "$7")
+    tmp="$CONF.tmp"
+    awk -v n="$n" -v l="$line" 'NR == n { print l; next } { print }' "$CONF" > "$tmp"
+    commit "$tmp" || exit 1
+    echo "$n"
+    ;;
+add)
+    sec="${2:?section}"; line=$(fmt "$3" "$4" "$5" "$6" "$7")
+    tmp="$CONF.tmp"
+    # after the section's last non-blank line (its header, if it is empty)
+    ins=$(awk -v sec="$sec" '
+        /^#[ \t]*---/ { s = $0; sub(/^#[ \t]*---[ \t]*/, "", s); sub(/[ \t]*---.*$/, "", s)
+                       insec = (tolower(s) == tolower(sec)); if (insec) last = NR; next }
+        insec && !/^[ \t]*$/ { last = NR }
+        END { print last + 0 }' "$CONF")
+    if [ "$ins" -gt 0 ]; then
+        awk -v n="$ins" -v l="$line" '{ print } NR == n { print l }' "$CONF" > "$tmp"
+        newline=$((ins + 1))
+    else
+        { cat "$CONF"; printf '\n# --- %s ---\n%s\n' "$sec" "$line"; } > "$tmp"
+        newline=$(($(wc -l < "$CONF") + 3))
+    fi
+    commit "$tmp" || exit 1
+    echo "$newline"
+    ;;
+delete)
+    n="${2:?line}"; tmp="$CONF.tmp"
+    awk -v n="$n" 'NR != n' "$CONF" > "$tmp"
+    commit "$tmp" || exit 1
+    ;;
+check)
+    "$GEN" "$CONF" "$DEF" >/dev/null
+    ;;
+apply)
+    exec "$C/scripts/keybinds-apply"
+    ;;
+"") ;;
+*)  echo "usage: keybinds [open N | get N | set ... | add ... | delete N | check | apply]" >&2; exit 2 ;;
+esac
+[ -n "${1:-}" ] && exit 0
+
+exec awk '
+function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+function fields(line,   rest, name, val, c, i) {
+    delete F
+    rest = trim(line)
+    while (rest != "") {
+        if (match(rest, /^[a-z]+=/) == 0) return 0
+        name = substr(rest, 1, RLENGTH - 1); rest = substr(rest, RLENGTH + 1)
+        c = substr(rest, 1, 1)
+        if (c == "\"" || c == "\047") {
+            i = index(substr(rest, 2), c); if (i == 0) return 0
+            val = substr(rest, 2, i - 1); rest = substr(rest, i + 2)
+        } else {
+            i = match(rest, /[ \t]/); val = i ? substr(rest, 1, i - 1) : rest; rest = i ? substr(rest, i) : ""
+        }
+        F[name] = val; rest = trim(rest)
+    }
+    return 1
+}
+function cap(k) {
+    if (k in K) return K[k]
+    if (length(k) == 1) return toupper(k)
+    sub(/^XF86/, "", k)
+    return k
+}
+function modcaps(m,   n, a, i, out, t) {
+    if (m == "" || m == "none") return ""
+    n = split(m, a, "+")
+    for (i = 1; i <= n; i++) { t = a[i]; t = toupper(substr(t, 1, 1)) tolower(substr(t, 2)); out = out (out != "" ? "+" : "") t }
+    return out
+}
+function combo(m, k) { m = modcaps(m); return m != "" ? m "+" k : k }
+function label(action, a) {
+    if (action == "view") return a == "back" ? "Etiqueta anterior" : "Ver etiqueta " a
+    if (action == "toggleview") return "Alternar etiqueta " a
+    if (action == "tag") return "Mover ventana a la etiqueta " a
+    if (action == "toggletag") return "Alternar ventana en la etiqueta " a
+    if (action == "setlayout") return "Diseño: " ((a in LN) ? LN[a] : a)
+    if (action == "scratchslot") return "Mostrar u ocultar la ranura " a
+    if (action == "makescratchtagwin") return "Poner esta ventana en la ranura " a
+    if (action == "run") { sub(/^[^ ]*\//, "", a); return a }
+    return trim(action " " a)
+}
+function foldable(action, a) { return action ~ /^(view|toggleview|tag|toggletag|scratchslot|makescratchtagwin)$/ && a ~ /^[0-9]+$/ }
+function folddesc(action, a, b,   r) {
+    r = (a == b) ? a : a "–" b
+    if (action == "view") return "Ver etiqueta " r
+    if (action == "toggleview") return "Alternar etiqueta " r
+    if (action == "tag") return "Mover ventana a la etiqueta " r
+    if (action == "toggletag") return "Alternar ventana en la etiqueta " r
+    if (action == "scratchslot") return "Mostrar u ocultar la ranura " r
+    return "Poner esta ventana en la ranura " r
+}
+BEGIN {
+    # nombres de los layouts para la ayuda (do=setlayout NOMBRE)
+    LN["dwindle"] = "dwindle"; LN["tile"] = "mosaico"; LN["columns"] = "columnas"; LN["centered"] = "centrada"
+    LN["floating"] = "flotante"; LN["bstack"] = "pila inferior"; LN["nrowgrid"] = "rejilla de n filas"; LN["deck"] = "baraja"
+    LN["gaplessgrid"] = "rejilla sin huecos"; LN["spiral"] = "espiral"; LN["monocle"] = "monóculo"; LN["grid"] = "rejilla"
+    K["Return"] = "Enter"; K["space"] = "Espacio"; K["Tab"] = "Tab"; K["Escape"] = "Esc"
+    K["Left"] = "←"; K["Right"] = "→"; K["Up"] = "↑"; K["Down"] = "↓"
+    K["grave"] = "`"; K["comma"] = ","; K["period"] = "."; K["slash"] = "/"
+    K["minus"] = "-"; K["equal"] = "="; K["semicolon"] = ";"; K["apostrophe"] = "\047"
+    K["bracketleft"] = "["; K["bracketright"] = "]"; K["backslash"] = "\\"
+    K["BackSpace"] = "Retroceso"; K["Delete"] = "Supr"; K["Print"] = "ImprPant"
+    K["XF86AudioRaiseVolume"] = "Subir vol"; K["XF86AudioLowerVolume"] = "Bajar vol"
+    K["XF86AudioMute"] = "Silencio"; K["XF86AudioMicMute"] = "Silenciar mic"
+    K["XF86MonBrightnessUp"] = "Subir brillo"; K["XF86MonBrightnessDown"] = "Bajar brillo"
+    section = "other"; nrows = 0; lastfold = 0
+}
+/^#[ \t]*---/ { s = $0; sub(/^#[ \t]*---[ \t]*/, "", s); sub(/[ \t]*---.*$/, "", s); section = s; lastfold = 0; next }
+/^[ \t]*(#|$)/ { next }
+{
+    if (!fields($0) || !("key" in F)) next
+    m = ("mod" in F) ? F["mod"] : "none"
+    if ("run" in F) { action = "run"; arg = F["run"] }
+    else { n = split(trim(F["do"]), w, /[ \t]+/); action = w[1]; arg = ""; for (i = 2; i <= n; i++) arg = arg (i > 2 ? " " : "") w[i] }
+    keys = combo(m, cap(F["key"]))
+
+    if (!("desc" in F) && foldable(action, arg)) {
+        fid = section SUBSEP m SUBSEP action
+        if (lastfold && FOLD[lastfold] == fid) { FLASTK[lastfold] = cap(F["key"]); FLAST[lastfold] = arg; next }
+        nrows++; SEC[nrows] = section; LINE[nrows] = NR; KIND[nrows] = "do"; CMD[nrows] = action
+        FOLD[nrows] = fid; FMODS[nrows] = m; FACT[nrows] = action
+        FFIRSTK[nrows] = cap(F["key"]); FLASTK[nrows] = cap(F["key"]); FFIRST[nrows] = arg; FLAST[nrows] = arg
+        lastfold = nrows
+        next
+    }
+    lastfold = 0
+    desc = ("desc" in F && F["desc"] != "") ? F["desc"] : label(action, arg)
+    pin = 0
+    if (desc ~ /^!/) { pin = 1; desc = trim(substr(desc, 2)) }
+    k = section SUBSEP desc
+    if (k in SEEN) { KEYS[SEEN[k]] = KEYS[SEEN[k]] "|" keys; next }
+    nrows++; SEEN[k] = nrows
+    SEC[nrows] = section; KEYS[nrows] = keys; DESC[nrows] = desc; LINE[nrows] = NR; PIN[nrows] = pin
+    KIND[nrows] = (action == "run") ? "run" : "do"
+    CMD[nrows] = (action == "run") ? arg : trim(action " " arg)
+}
+END {
+    for (r = 1; r <= nrows; r++) {
+        if (r in FOLD) {
+            KEYS[r] = combo(FMODS[r], FFIRSTK[r] == FLASTK[r] ? FFIRSTK[r] : FFIRSTK[r] "…" FLASTK[r])
+            DESC[r] = folddesc(FACT[r], FFIRST[r], FLAST[r])
+        }
+    }
+    # section order as in the file; within a section, pinned rows first
+    for (r = 1; r <= nrows; r++) {
+        if (SEC[r] in DONE) continue
+        DONE[SEC[r]] = 1
+        for (pass = 1; pass >= 0; pass--)
+            for (q = r; q <= nrows; q++)
+                if (SEC[q] == SEC[r] && (PIN[q] ? 1 : 0) == pass)
+                    printf "%s\t%s\t%s\t%d\t%s\t%s\n", SEC[q], KEYS[q], DESC[q], LINE[q], KIND[q], CMD[q]
+    }
+}
+' "$CONF"

@@ -1,11 +1,9 @@
 #!/bin/sh
-# install.sh — instalador de una linea para la traduccion de Butterbian + dwm
+# install.sh — instalador de una linea para la traduccion de butterdwm (dwm + Quickshell)
 #
-#   curl -fsSL https://raw.githubusercontent.com/Richiestone18/butterbian-es/main/install.sh -o install.sh
-#   chmod +x install.sh
-#   ./install.sh              # aplica la traduccion
-#   ./install.sh --check      # solo compara
-#   ./install.sh --restore    # deshace el ultimo cambio
+#   curl -fsSL https://raw.githubusercontent.com/Richiestone18/butterbian-es/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Richiestone18/butterbian-es/main/install.sh | bash -s -- --check
+#   curl -fsSL https://raw.githubusercontent.com/Richiestone18/butterbian-es/main/install.sh | bash -s -- --restore
 #
 # Descarga el repo en un directorio temporal y ejecuta traducir-butterbian-es.sh.
 # -----------------------------------------------------------------------------
@@ -24,5 +22,5 @@ DIR=$(find "$TMP" -maxdepth 1 -mindepth 1 -type d | head -1)
 [ -n "$DIR" ] && [ -f "$DIR/traducir-butterbian-es.sh" ] \
     || { echo "ERROR: el paquete descargado no trae traducir-butterbian-es.sh" >&2; exit 1; }
 
-# el script ve traducir.txt junto a el, asi que trabaja sin volver a descargar nada
-exec sh "$DIR/traducir-butterbian-es.sh" "$@"
+# el script trae junto a el manifiesto.txt, atajos.tsv y payload/: no descarga nada mas
+exec bash "$DIR/traducir-butterbian-es.sh" "$@"

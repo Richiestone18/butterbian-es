@@ -1,0 +1,73 @@
+# descripcion original (ingles)	descripcion en espanol   · butterdwm d63645d72a49
+!Terminal	!Terminal
+!App launcher (the bar's; rofi when the bar is down)	!Lanzador de apps (rofi si no hay barra)
+Browser	Navegador
+Browser (private window)	Navegador (ventana privada)
+File manager	Gestor de archivos
+Editor	Editor
+Keybindings	Atajos de teclado
+!Window switcher (the bar's; rofi when the bar is down)	!Cambiar de ventana (rofi si no hay barra)
+Wallpaper picker (re-themes the desktop from the image)	Elegir fondo (y los colores del escritorio)
+Command menu	Menú de comandos
+Layout settings	Ajustes de diseño
+Network app (Super+n is window-follow)	App de red (Super+n es seguir ventana)
+Power menu	Menú de energía
+!Close window	!Cerrar ventana
+Focus next window	Enfocar ventana siguiente
+Focus previous window	Enfocar ventana anterior
+Move window down the stack	Bajar ventana en la pila
+Move window up the stack	Subir ventana en la pila
+Fullscreen	Pantalla completa
+Toggle floating	Alternar flotante
+Sticky (show on all tags)	Fijar (mostrar en todas las etiquetas)
+Window follows on tag / monitor send	Seguir la ventana al enviarla a otra etiqueta o monitor
+Hide or show the bar	Ocultar o mostrar la barra
+Tab attach: focused window into a tab group on this monitor	Pestañas: unir la ventana enfocada a un grupo de pestañas
+Tab detach: focused window out of its tab group	Pestañas: sacar la ventana enfocada de su grupo
+!Shrink master (or column)	!Reducir maestro (o columna)
+!Grow master (or column)	!Agrandar maestro (o columna)
+Shrink master (or column)	Reducir maestro (o columna)
+Grow master (or column)	Agrandar maestro (o columna)
+Reset master and column factors	Restablecer tamaños de maestro y columnas
+Master count +1	Ventanas maestras +1
+Master count -1	Ventanas maestras -1
+Previously viewed tag	Etiqueta vista antes
+Previous tag	Etiqueta anterior
+Next tag	Etiqueta siguiente
+Send window to previous tag	Enviar ventana a la etiqueta anterior
+Send window to next tag	Enviar ventana a la etiqueta siguiente
+Focus previous monitor	Enfocar monitor anterior
+Focus next monitor	Enfocar monitor siguiente
+Send window to previous monitor	Enviar ventana al monitor anterior
+Send window to next monitor	Enviar ventana al monitor siguiente
+!Drop-down terminal	!Terminal desplegable
+Pulsemixer	Pulsemixer
+Make this window the drop-down terminal	Usar esta ventana como terminal desplegable
+Take this window out of its slot	Sacar esta ventana de su ranura
+!Toggle gaps	!Alternar huecos
+Reset gaps to defaults	Restablecer huecos
+All gaps +1	Todos los huecos +1
+All gaps -1	Todos los huecos -1
+Inner gaps +1	Huecos internos +1
+Inner gaps -1	Huecos internos -1
+Outer gaps +1	Huecos externos +1
+Outer gaps -1	Huecos externos -1
+Inner horizontal gaps +1	Huecos internos horizontales +1
+Inner horizontal gaps -1	Huecos internos horizontales -1
+Inner vertical gaps +1	Huecos internos verticales +1
+Inner vertical gaps -1	Huecos internos verticales -1
+Outer horizontal gaps +1	Huecos externos horizontales +1
+Outer horizontal gaps -1	Huecos externos horizontales -1
+Outer vertical gaps +1	Huecos externos verticales +1
+Outer vertical gaps -1	Huecos externos verticales -1
+Volume up	Subir volumen
+Volume down	Bajar volumen
+Mute	Silenciar
+Brightness up	Subir brillo
+Brightness down	Bajar brillo
+Screenshot: region (flameshot's editor)	Captura: región (editor de flameshot)
+Screenshot: full screen	Captura: pantalla completa
+!Apply this file: regenerate, rebuild and restart dwm in place	!Aplicar este archivo: regenerar, recompilar y reiniciar dwm
+Restart dwm (keeps windows and tags)	Reiniciar dwm (conserva ventanas y etiquetas)
+Restart the bar	Reiniciar la barra
+Quit dwm	Salir de dwm

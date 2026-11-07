@@ -1,0 +1,12 @@
+#!/bin/sh
+# help — the keybinds cheatsheet: the settings panel's Keybinds tab
+# (quickshell/SettingsPopup.qml), or a rofi list of the same rows when the
+# bar isn't there to answer.
+C="$(dirname "$(dirname "$(readlink -f "$0")")")"
+qs -p "$C/quickshell" ipc call settings open keybinds >/dev/null 2>&1 && exit 0
+"$C/scripts/keybinds" | awk -F'\t' '
+    $1 != last { if (last != "") print ""; printf "<span weight=\"bold\" foreground=\"#ff8f40\">── %s ──</span>\n", toupper($1); last = $1 }
+    { gsub(/&/, "\\&amp;"); gsub(/</, "\\&lt;"); gsub(/\|/, " / ", $2); gsub(/\+/, " + ", $2)
+      printf "<span foreground=\"#78a9ff\">%-34s</span> %s\n", $2, $3 }' \
+    | rofi -dmenu -markup-rows -i -p "Atajos" -line-padding 4 -hide-scrollbar \
+        -theme "$C/rofi/keybinds.rasi" >/dev/null

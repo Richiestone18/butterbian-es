@@ -1,0 +1,49 @@
+#!/bin/sh
+# keybinds-apply — make keybinds.conf and rules.conf take effect:
+# regenerate dwm/keys.h and dwm/rules.h, rebuild dwm, install it and
+# restart it in place (SIGHUP keeps every window and tag). Super+Escape
+# runs this; so do the bar's editors. A bad line stops at the generator
+# and nothing is replaced.
+#
+# dwm acts on the signal only when its event loop wakes, so the restart
+# is followed by a root property write: any X event will do, and that
+# one is otherwise ignored.
+# The install step is the one make invocation install.sh lets this user
+# run without a password (/etc/sudoers.d/butterdwm-keybinds); without
+# that line, a terminal asks.
+C="$(dirname "$(dirname "$(readlink -f "$0")")")"
+cd "$C/dwm" || exit 1
+if ! "$C/scripts/rules-gen" rules.conf > rules.h.tmp 2> rules.h.err; then
+    rm -f rules.h.tmp
+    notify-send -a dwm -u critical "rules.conf" "$(head -c 400 rules.h.err)"
+    rm -f rules.h.err
+    exit 1
+fi
+rm -f rules.h.err
+if ! "$C/scripts/keybinds-gen" keybinds.conf config.def.h > keys.h.tmp 2> keys.h.err; then
+    rm -f keys.h.tmp rules.h.tmp
+    notify-send -a dwm -u critical "keybinds.conf" "$(head -c 400 keys.h.err)"
+    rm -f keys.h.err
+    exit 1
+fi
+rm -f keys.h.err
+mv rules.h.tmp rules.h
+mv keys.h.tmp keys.h
+if ! make >/dev/null 2>make.err; then
+    notify-send -a dwm -u critical "Falló la compilación de dwm" "$(tail -c 400 make.err)"
+    rm -f make.err
+    exit 1
+fi
+rm -f make.err config.h
+# installing needs root: quietly when sudo is cached or passwordless,
+# otherwise in a terminal that asks
+restart() { pkill -HUP -x dwm; xprop -root -f _DWM_WAKE 32c -set _DWM_WAKE 1; }
+INSTALL=/usr/local/sbin/butterdwm-install-dwm
+if sudo -n "$INSTALL" >/dev/null 2>&1; then
+    restart
+    notify-send -a dwm "Atajos aplicados" "dwm recompilado y reiniciado"
+else
+    # shellcheck disable=SC2016  # $0 is the helper, expanded by that sh
+    exec kitty --class keybinds-apply -e sh -c \
+        'sudo "$0" && pkill -HUP -x dwm && xprop -root -f _DWM_WAKE 32c -set _DWM_WAKE 1 && exit 0; printf "\npress enter to close "; read _' "$INSTALL"
+fi
