@@ -1,0 +1,61 @@
+#!/bin/sh
+# picom-effects — the Layout tab's Effects toggles and unfocused-opacity
+# slider, kept in picom.conf itself (so nothing else to persist) and
+# applied by having picom reload its config (SIGUSR1).
+#   picom-effects                print the state: blur=0|1 shadows=0|1
+#                                animations=0|1 opacity=N (percent)
+#   picom-effects blur 0|1       blur-background
+#   picom-effects shadows 0|1    shadow
+#   picom-effects animations 0|1 fading, and the animations block: off
+#                                comments it out with a "#~ " prefix,
+#                                on strips it, so the presets survive
+#   picom-effects opacity N      the "!focused" rule's opacity, 50-100
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/suckless/picom/picom.conf"
+
+bool() { case "$1" in 1|true|yes|on) echo true ;; *) echo false ;; esac; }
+rewrite() { tmp="$CONF.tmp"; awk "$1" "$CONF" > "$tmp" && mv "$tmp" "$CONF"; }
+reload() { pkill -USR1 -x picom 2>/dev/null || true; }
+
+case "${1:-}" in
+"")
+    exec awk '
+        function val(s) { sub(/.*= */, "", s); sub(/;.*/, "", s); return s }
+        /^blur-background *=/ { b = (val($0) == "true") }
+        /^shadow *=/ { s = (val($0) == "true") }
+        /^animations *= *\(/ { a = 1 }
+        /match = "!focused"/ { f = 1; next }
+        f && /opacity = / { o = val($0) * 100 + 0.5; f = 0 }
+        END { printf "blur=%d\nshadows=%d\nanimations=%d\nopacity=%d\n", b, s, a, o }' "$CONF"
+    ;;
+blur)
+    v=$(bool "${2:-}")
+    rewrite '/^blur-background *=/ { print "blur-background = '"$v"';"; next } { print }'
+    reload
+    ;;
+shadows)
+    v=$(bool "${2:-}")
+    rewrite '/^shadow *=/ { print "shadow = '"$v"';"; next } { print }'
+    reload
+    ;;
+animations)
+    if [ "$(bool "${2:-}")" = true ]; then
+        rewrite '/^fading *=/ { print "fading = true;"; next } /^#~ / { sub(/^#~ /, "") } { print }'
+    else
+        # shellcheck disable=SC2016  # awk program, not shell
+        rewrite '/^fading *=/ { print "fading = false;"; next }
+                 /^animations *= *\(/ { inblock = 1 }
+                 inblock { print "#~ " $0; if ($0 ~ /^\);/) inblock = 0; next }
+                 { print }'
+    fi
+    reload
+    ;;
+opacity)
+    n="${2:-}"
+    case "$n" in *[!0-9]*|"") echo "picom-effects opacity: un porcentaje 50-100" >&2; exit 2 ;; esac
+    [ "$n" -lt 50 ] && n=50; [ "$n" -gt 100 ] && n=100
+    v=$(awk -v n="$n" 'BEGIN { printf "%.2f", n / 100 }')
+    rewrite '/match = "!focused"/ { f = 1 } f && /opacity = / { sub(/opacity = [0-9.]*/, "opacity = '"$v"'"); f = 0 } { print }'
+    reload
+    ;;
+*)  echo "usage: picom-effects [blur|shadows|animations 0|1 | opacity N]" >&2; exit 2 ;;
+esac

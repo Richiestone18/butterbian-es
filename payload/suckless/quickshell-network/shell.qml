@@ -970,7 +970,7 @@ ShellRoot {
         // go in the box; lead is the one the password follows
         component PwField: Item {
             id: pwf
-            property string placeholder: "password"
+            property string placeholder: "contraseña"
             property Item lead: null
             property bool grab: false
             property bool showPw: false
@@ -1597,7 +1597,7 @@ ShellRoot {
                             required property var modelData
                             label: "󰂱  " + modelData.name
                             ink: Qt.alpha(Theme.fg, 0.7)
-                            note: "pair"
+                            note: "emparejar"
                             onClicked: win.btPairNew(modelData)
                         }
                     }

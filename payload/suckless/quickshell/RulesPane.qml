@@ -446,7 +446,7 @@ Item {
             visible: Quickshell.screens.length > 1
             spacing: 8
             EditorPanel.Lbl { text: "En monitor" }
-            Pill { text: "current"; active: root.monitor === ""; onClicked: root.monitor = "" }
+            Pill { text: "actual"; active: root.monitor === ""; onClicked: root.monitor = "" }
             Repeater {
                 model: Quickshell.screens.length
                 Pill { required property int index; text: String(index); active: root.monitor === String(index); onClicked: root.monitor = String(index) }

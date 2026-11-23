@@ -148,6 +148,16 @@ def main():
         ('quickshell-network/shell.qml', ': "offline"', '"offline"', '"sin conexión"'),
         ('quickshell-network/shell.qml', 'text: "devices"', '"devices"', '"dispositivos"'),
         ('quickshell-network/shell.qml', 'press enter to close', 'press enter to close ', 'pulsa enter para cerrar '),
+        # ---- v8: lo ultimo que quedaba en ingles en la interfaz ------------
+        ('quickshell/DisplaysPane.qml', 'text: "identify"', '"identify"', '"identificar"'),
+        ('quickshell/DisplaysPane.qml', 'text: "apply"', '"apply"', '"aplicar"'),
+        ('quickshell/DisplaysPane.qml', 'text: "revert"', '"revert"', '"revertir"'),
+        ('quickshell/DisplaysPane.qml', 'text: "keep"', '"keep"', '"mantener"'),
+        ('quickshell-network/shell.qml', 'placeholder: "password"', '"password"', '"contraseña"'),
+        ('quickshell-network/shell.qml', 'note: "pair"', '"pair"', '"emparejar"'),
+        ('quickshell/RulesPane.qml', 'Pill { text: "current"', '"current"', '"actual"'),
+        ('quickshell/WeatherPopup.qml', 'name: "humidity"', '"humidity"', '"humedad"'),
+        ('quickshell/WeatherPopup.qml', 'name: "wind"', '"wind"', '"viento"'),
     ]
 
     for rel, ancla, en, es in T:
@@ -265,6 +275,21 @@ def main():
          r'                        text: row\.armed \? "(?:again to confirm|confirmar)" : row\.modelData\.key\.toUpperCase\(\)\n',
          '                        text: row.armed ? "confirmar" : row.modelData.key.toUpperCase()\n'
          '                        font.pixelSize: row.armed ? 10 : 11\n'),
+        # v8: el panel de pantallas escribe sus avisos en ingles porque los
+        # compara ("reverted", "kept"): se traducen solo al mostrarlos
+        (r'quickshell/DisplaysPane.qml',
+         r'    function runRandr\(args, after\) \{\n',
+         '    // los avisos del panel son datos en ingles (se comparan); esto solo\n'
+         '    // cambia lo que se muestra en pantalla\n'
+         '    function statusLabel(s) {\n'
+         '        if (s === "reverted") return "revertido"\n'
+         '        if (s === "kept") return "aplicado"\n'
+         '        return s\n'
+         '    }\n'
+         '    function runRandr(args, after) {\n'),
+        (r'quickshell/DisplaysPane.qml',
+         r': root\.busy \? "aplicando[^"]*" : root\.status\n',
+         ': root.busy ? "aplicando..." : root.statusLabel(root.status)\n'),
     ]
     PATCHED = set()
     for rel, old, new in P:

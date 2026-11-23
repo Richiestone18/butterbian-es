@@ -200,8 +200,8 @@ Popout {
             width: parent.width
             spacing: 6
             Stat { glyph: "󰔏"; value: root.feels + "°"; name: "sensación térmica" }
-            Stat { glyph: "󰖌"; value: WeatherData.humidity; name: "humidity" }
-            Stat { glyph: "󰖝"; value: root.wind; name: "wind" }
+            Stat { glyph: "󰖌"; value: WeatherData.humidity; name: "humedad" }
+            Stat { glyph: "󰖝"; value: root.wind; name: "viento" }
         }
 
         SectionLabel {

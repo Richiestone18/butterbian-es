@@ -1,0 +1,179 @@
+#!/bin/sh
+# keybinds-gen — turn keybinds.conf into dwm/keys.h, the keys[] table
+# config.def.h includes. Run by the dwm Makefile whenever keybinds.conf
+# changes; scripts/keybinds-apply runs it and then rebuilds.
+#   keybinds-gen [keybinds.conf] [config.def.h] > keys.h
+# keybinds.conf: one bind per line as named fields — mod= key= desc=
+# run= (a shell line, SHCMD) or do= (one of dwm's own actions and its
+# argument). "# --- name ---" starts a section. The layout names for
+# "do=setlayout NAME" come from config.def.h's layouts[] table.
+# Errors (unknown field or action, bad argument, a chord bound twice) go
+# to stderr and nothing is written, so a typo can't take the key table
+# down.
+set -u
+DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
+CONF="${1:-$DIR/dwm/keybinds.conf}"
+DEF="${2:-$DIR/dwm/config.def.h}"
+RULES="${3:-$(dirname "$CONF")/rules.conf}"
+[ -r "$CONF" ] || { echo "keybinds-gen: no se pudo leer $CONF" >&2; exit 1; }
+[ -r "$DEF" ] || { echo "keybinds-gen: no se pudo leer $DEF" >&2; exit 1; }
+
+# scratchpad ids rules.conf defines (their command arrays are in rules.h)
+scratchids=$(sed -n 's/.*\bscratch=\([a-z]\)\b.*/\1/p' "$RULES" 2>/dev/null | tr '\n' ' ')
+
+# layouts[]: index -> arrange function name (NULL = floating)
+layouts=$(awk '
+    /static const Layout layouts\[\] = \{/ { in_l = 1; i = 0; next }
+    in_l && /^\};/ { exit }
+    in_l && /^[ \t]*\{/ {
+        s = $0; sub(/^[^,]*,[ \t]*/, "", s); sub(/[ \t]*\}.*/, "", s)
+        printf "%d %s\n", i, (s == "NULL" ? "floating" : s); i++
+    }' "$DEF")
+
+out=$(printf '%s\n' "$layouts" | awk -v conf="$CONF" -v scratchids="$scratchids" '
+function die(msg) { printf "keybinds-gen: %s:%d: %s\n", conf, ln, msg > "/dev/stderr"; bad = 1 }
+function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+function cesc(s) { gsub(/\\/, "\\\\", s); gsub(/"/, "\\\"", s); return s }
+function sign(a) {
+    if (a == "next" || a == "down" || a == "+1" || a == "1") return "+1"
+    if (a == "prev" || a == "up" || a == "-1") return "-1"
+    if (a ~ /^[+-]?[0-9]+$/) return a
+    die("se espera next/prev o un número, en vez de \"" a "\""); return "0"
+}
+function keysym(k) {
+    if (k ~ /^XF86/) return "XF86XK_" substr(k, 5)
+    return "XK_" k
+}
+function tagmask(a) {
+    if (a !~ /^[0-9]+$/ || a + 0 < 1 || a + 0 > 12) { die("se espera una etiqueta 1-12, en vez de \"" a "\""); return "{0}" }
+    return "{.ui = 1 << " (a - 1) "}"
+}
+function autolabel(action, a) {
+    if (action == "view") return a == "back" ? "Previous tag" : "View tag " a
+    if (action == "toggleview") return "Toggle tag " a
+    if (action == "tag") return "Move window to tag " a
+    if (action == "toggletag") return "Toggle window on tag " a
+    if (action == "setlayout") return "Diseño: " a
+    if (action == "scratchslot") return "Scratch slot " a
+    if (action == "makescratchtagwin") return "Window into scratch slot " a
+    if (action == "focusstack") return (a == "-1" ? "Previous" : "Next") " window"
+    if (action == "movestack") return "Move window " (a == "-1" ? "up" : "down")
+    if (action == "run") { sub(/^[^ ]*\//, "", a); return a }
+    return trim(action " " a)
+}
+# name=value fields: a value is bare (no spaces), "double" or \x27single\x27 quoted
+function fields(line,   rest, name, val, c, i) {
+    delete F
+    rest = trim(line)
+    while (rest != "") {
+        if (match(rest, /^[a-z]+=/) == 0) { die("se espera name=value, en vez de \"" rest "\""); return 0 }
+        name = substr(rest, 1, RLENGTH - 1); rest = substr(rest, RLENGTH + 1)
+        c = substr(rest, 1, 1)
+        if (c == "\"" || c == "\x27") {
+            i = index(substr(rest, 2), c)
+            if (i == 0) { die("comilla sin cerrar en " name "="); return 0 }
+            val = substr(rest, 2, i - 1); rest = substr(rest, i + 2)
+        } else {
+            i = match(rest, /[ \t]/); val = i ? substr(rest, 1, i - 1) : rest; rest = i ? substr(rest, i) : ""
+        }
+        if (name !~ /^(mod|key|desc|run|do)$/) { die("campo desconocido \"" name "\""); return 0 }
+        if (name in F) { die("field " name "= repetido dos veces"); return 0 }
+        F[name] = val
+        rest = trim(rest)
+    }
+    return 1
+}
+function modmask(m,   n, a, i, t, out) {
+    if (m == "" || tolower(m) == "none") return "0"
+    n = split(m, a, "+")
+    for (i = 1; i <= n; i++) {
+        t = tolower(trim(a[i]))
+        if (t == "super") t = "MODKEY"
+        else if (t == "shift") t = "ShiftMask"
+        else if (t == "ctrl" || t == "control") t = "ControlMask"
+        else if (t == "alt") t = "ALTKEY"
+        else { die("modificador desconocido \"" trim(a[i]) "\""); t = "0" }
+        out = out (out != "" ? "|" : "") t
+    }
+    return out
+}
+function bind(   mods, key, fn, argc, action, arg, n, w, i, id, sline, sname, label) {
+    if (!("key" in F) || F["key"] == "") { die("el atajo necesita key="); return }
+    if (("run" in F) == ("do" in F)) { die("el atajo necesita run= o do= (uno de los dos)"); return }
+    mods = modmask(F["mod"]); key = F["key"]
+    if (key ~ /[ \t]/) die("key= es un solo nombre de tecla")
+    combo = mods "," key
+    if (combo in seen) die("key " F["mod"] "+" key " está ligado dos veces (líneas " seen[combo] " and " ln ")")
+    seen[combo] = ln
+    if ("run" in F) {
+        if (F["run"] == "") die("run= está vacío")
+        fn = "spawn"; argc = "SHCMD(\"" cesc(F["run"]) "\")"; action = "run"; arg = F["run"]
+    } else {
+        n = split(trim(F["do"]), w, /[ \t]+/)
+        action = w[1]; arg = ""
+        for (i = 2; i <= n; i++) arg = arg (i > 2 ? " " : "") w[i]
+        if (action ~ /^(killclient|fullscreen|togglefloating|togglesticky|togglefollow|togglebar|zoom|resetfacts|togglegaps|defaultgaps|viewtoleft|viewtoright|tagtoleft|tagtoright)$/) {
+            fn = action; argc = "{0}"
+            if (arg != "") die(action " no lleva argumento")
+        } else if (action ~ /^(focusstack|movestack|incnmaster|focusmon|tagmon|incrgaps|incrigaps|incrogaps|incrihgaps|incrivgaps|incrohgaps|incrovgaps)$/) {
+            fn = action; arg = sign(arg); argc = "{.i = " arg "}"
+        } else if (action ~ /^(resizefocused|setmfact|setcfact)$/) {
+            if (arg !~ /^[+-]?[0-9]*\.?[0-9]+$/) die("se espera un número para " action)
+            fn = action; argc = "{.f = " arg "}"
+        } else if (action ~ /^(view|toggleview|tag|toggletag)$/) {
+            fn = action; argc = (action == "view" && arg == "back") ? "{0}" : tagmask(arg)
+        } else if (action == "setlayout") {
+            name = arg
+            if (name == "columns") name = "columnlayout"
+            else if (name == "centered") name = "centeredmaster"
+            else if (name == "centeredfloating") name = "centeredfloatingmaster"
+            if (!(name in lay)) die("diseño desconocido \"" arg "\"")
+            fn = "setlayout"; argc = "{.v = &layouts[" lay[name] "]}"
+        } else if (action == "quit") {
+            fn = "quit"; argc = (arg == "restart") ? "{1}" : "{0}"
+        } else if (action == "togglescratch") {
+            if (arg !~ /^[a-z]$/) die("togglescratch toma el id del scratchpad de rules.conf (una letra)")
+            else if (index(" " scratchids " ", " " arg " ") == 0) die("scratchpad \"" arg "\" no está definido en rules.conf")
+            fn = "togglescratch"; argc = "{.v = scratch_" arg "}"
+        } else if (action == "scratchslot") {
+            if (arg !~ /^[1-9]$/) die("scratchslot necesita 1-9")
+            fn = "togglescratch"; argc = "{.v = scratchtagwin" arg "}"
+        } else if (action == "makescratchtagwin") {
+            fn = "makescratchtagwin"
+            if (arg == "none") argc = "{.i = 0}"
+            else if (arg ~ /^[1-9s]$/) argc = "{.i = \x27" arg "\x27}"
+            else die("makescratchtagwin necesita 1-9, s o none")
+        } else {
+            die("acción desconocida \"" action "\" in do="); return
+        }
+    }
+    label = ("desc" in F && F["desc"] != "") ? F["desc"] : autolabel(action, arg)
+    gsub(/\*\//, "* /", label)
+    nb++
+    row[nb] = sprintf("\t{ %-30s %-22s %-18s %s },\t/* %s */", mods ",", keysym(key) ",", fn ",", argc, label)
+}
+BEGIN { FS = "\n" }
+# first input: the layouts list from the shell
+{ split($0, f, " "); lay[f[2]] = f[1]; next }
+END {
+    nb = 0; ln = 0
+    while ((getline line < conf) > 0) {
+        ln++
+        if (line ~ /^#[ \t]*---/) {
+            s = line; sub(/^#[ \t]*---[ \t]*/, "", s); sub(/[ \t]*---.*$/, "", s)
+            nb++; row[nb] = "\t/* === " toupper(s) " === */"
+            continue
+        }
+        if (line ~ /^[ \t]*(#|$)/) continue
+        if (fields(line)) bind()
+    }
+    if (bad) exit 1
+    print "/* keys.h — GENERATED by scripts/keybinds-gen from keybinds.conf."
+    print " * Edit keybinds.conf, not this file; Super+Escape or `make` regenerates it. */"
+    print ""
+    print "static const Key keys[] = {"
+    print "\t/* modifier                     key                    function           argument */"
+    for (i = 1; i <= nb; i++) print row[i]
+    print "};"
+}' -) || exit 1
+printf '%s\n' "$out"

@@ -211,6 +211,13 @@ Item {
             loader.running = true
         }
     }
+    // los avisos del panel son datos en ingles (se comparan); esto solo
+    // cambia lo que se muestra en pantalla
+    function statusLabel(s) {
+        if (s === "reverted") return "revertido"
+        if (s === "kept") return "aplicado"
+        return s
+    }
     function runRandr(args, after) {
         if (busy || args.length === 0)
             return
@@ -555,7 +562,7 @@ Item {
             anchors.right: parent.right
             anchors.top: parent.top
             text: root.keepLeft > 0 ? "¿mantener estos ajustes?  se revierte en " + root.keepLeft + " s"
-                : root.busy ? "aplicando..." : root.status
+                : root.busy ? "aplicando..." : root.statusLabel(root.status)
             color: root.keepLeft > 0 ? Theme.fg
                  : root.status !== "" && root.status !== "reverted" && !root.status.startsWith("kept") ? Theme.red
                  : Qt.alpha(Theme.fg, 0.5)
@@ -568,25 +575,25 @@ Item {
             spacing: 6
 
             Pill {
-                text: "identify"
+                text: "identificar"
                 active: Wm.identifyOutputs
                 onClicked: { Wm.identifyOutputs = true; identTimer.restart() }
             }
             Pill {
                 visible: root.keepLeft === 0
-                text: "apply"
+                text: "aplicar"
                 active: root.dirty && !root.busy
                 opacity: root.dirty ? 1 : 0.5
                 onClicked: if (root.dirty && !root.busy) root.apply()
             }
             Pill {
                 visible: root.keepLeft > 0
-                text: "revert"
+                text: "revertir"
                 onClicked: root.revert()
             }
             Pill {
                 visible: root.keepLeft > 0
-                text: "keep"
+                text: "mantener"
                 active: true
                 onClicked: root.keep()
             }

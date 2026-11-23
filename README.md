@@ -5,8 +5,8 @@ into Spanish (es_MX): dwm with the **Quickshell** bar, on Debian 13. It covers
 the bar, the network app, the shortcut help (`Super+/`) and the messages of its
 scripts. It also applies fixes so the bar works well in Spanish.
 
-**Version 7**: built and tested on butterdwm `35da28a` (November 20, 2026).
-It also migrates a machine that already had version 6: a file that is an
+**Version 8**: built and tested on butterdwm `35da28a` (November 20, 2026).
+It also migrates a machine that already had version 6 or 7: a file that is an
 *earlier* translation of this package (`translated-before.tsv`) is
 re-translated instead of being left as is. Your own edits are still kept.
 The generator (`tools/`) was redesigned so a future butterdwm version is
@@ -61,7 +61,10 @@ terminal in your own session, the script restarts it for you.
     and the welcome message;
   - the rofi fallback power menu;
   - the GTK notices (`scripts/gtk-theme`) and the radar errors the card shows
-    (`scripts/radar`).
+    (`scripts/radar`);
+  - the volume notification (`scripts/changevolume`), the update flow
+    (`scripts/setup-update`) and the messages of `displays`, `themes`,
+    `gen-keybinds`, `install-dwm` and `picom-effects`.
 
 ## What it does NOT translate (on purpose)
 
@@ -113,6 +116,17 @@ see `tools/README.md`.
 
 ## Changelog
 
+- **v8** (2026-11-22): the last texts that were still in English:
+  - the displays panel's buttons (`identificar / aplicar / revertir /
+    mantener`) and its `revertido` status (the word it compares stays
+    English, only what is shown changes);
+  - the network app's password placeholder and the `pair` note of a new
+    Bluetooth device; the monitors' `actual` pill; the humidity and wind
+    labels of the weather card;
+  - the notices of `scripts/`: the volume notification, the whole update
+    flow (`setup-update`), the displays, themes and gtk messages, and the
+    complaints of the shortcut and rule generators (`keybinds-gen`,
+    `rules-gen`), which the settings editor shows. 47 files now.
 - **v7** (2026-11-22): rebuilt on butterdwm `35da28a`:
   - the new texts of that version: the Tailscale device list in the network
     app (`Super+Shift+N`), the themes row of the wallpaper tab, the radar
@@ -152,7 +166,7 @@ install.sh                   one-line installer (downloads the repo and runs the
 translate-butterbian-es.sh   apply / --check / --restore
 manifest.txt                 sha256 of the original and the translated file of each file
 shortcuts.tsv                shortcut descriptions: English -> Spanish
-payload/suckless/            the 38 translated files
+payload/suckless/            the 47 translated files
 translated-before.tsv        sha256 of the Spanish files earlier versions installed
 tools/                       v6 generator (v7 package) (accumulated dictionary + build + regenerate.sh)
 work/                        butterdwm clone and translation staging (created by regenerate.sh)

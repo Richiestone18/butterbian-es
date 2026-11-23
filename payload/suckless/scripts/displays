@@ -1,0 +1,201 @@
+#!/bin/bash
+# displays — the settings panel's Displays tab back end (xrandr underneath).
+#   displays list          outputs as JSON, in wlr-randr's shape (what the
+#                          tab reads: modes, position, transform, EDID names)
+#   displays randr ARGS…   apply wlr-randr-style arguments through xrandr:
+#                          --output N --off | --on --mode WxH@R --pos X,Y
+#                          --transform normal|90|180|270 (scale and
+#                          adaptive-sync are accepted and ignored on X11)
+#   displays save          read the layout on stdin, keep it in the state file
+#   displays apply         put the saved layout back (bar start: only the
+#                          outputs that differ, so a restart doesn't modeset)
+#   displays forget        drop the saved layout
+#   displays seen          note which monitors are plugged in (randr-watch's start)
+#   displays hotplug       a monitor came or went: turn off one unplugged,
+#                          apply, turn on one plugged
+#                          in since `seen` that the layout doesn't know (its
+#                          own mode, right of the others), then paint the
+#                          wallpaper onto every output again (wallpaper-current)
+# State file: one output per line —
+#   name<TAB>on|off<TAB>WxH@R<TAB>x,y<TAB>scale<TAB>transform<TAB>vrr<TAB>make|model|serial
+# Outputs that aren't plugged in are skipped, not forgotten, so a laptop's
+# dock layout survives a trip; a different monitor on the same port is
+# skipped too (the last field), so it doesn't inherit the old one's mode.
+set -u
+state=${XDG_CONFIG_HOME:-$HOME/.config}/suckless/displays.conf
+
+# xrandr --verbose -> JSON (one object per connected output)
+list() {
+    xrandr --verbose | python3 -c '
+import json, re, sys
+outs, cur, mode = [], None, None
+def edid_names(hexs):
+    b = bytes.fromhex(hexs)
+    if len(b) < 128: return "", "", ""
+    v = (b[8] << 8) | b[9]
+    make = "".join(chr(64 + ((v >> s) & 31)) for s in (10, 5, 0))
+    model = serial = ""
+    for i in range(54, 126, 18):
+        d = b[i:i+18]
+        if d[0] == 0 and d[1] == 0 and d[2] == 0:
+            text = d[5:18].split(b"\n")[0].decode("ascii", "ignore").strip()
+            if d[3] == 0xFC: model = text
+            elif d[3] == 0xFF: serial = text
+    return make, model, serial
+for line in sys.stdin:
+    m = re.match(r"^(\S+) (connected|disconnected)(.*)$", line)
+    if m:
+        if m.group(2) != "connected": cur = None; continue
+        rest = m.group(3)
+        g = re.search(r"(\d+)x(\d+)\+(\d+)\+(\d+)", rest)
+        rot = "normal"
+        for word, t in (("left", "90"), ("inverted", "180"), ("right", "270")):
+            if re.search(r"\s" + word + r"\s\(", rest): rot = t
+        phys = re.search(r"(\d+)mm x (\d+)mm", rest)
+        cur = {"name": m.group(1), "enabled": g is not None, "modes": [],
+               "position": {"x": int(g.group(3)), "y": int(g.group(4))} if g else {"x": 0, "y": 0},
+               "scale": 1.0, "transform": rot, "adaptive_sync": False,
+               "physical_size": {"width": int(phys.group(1)), "height": int(phys.group(2))} if phys else {"width": 0, "height": 0},
+               "make": "", "model": "", "serial": "", "_edid": "", "_geom": (int(g.group(1)), int(g.group(2))) if g else None}
+        outs.append(cur); mode = None; continue
+    if cur is None: continue
+    s = line.strip()
+    if re.match(r"^[0-9a-f]{32}$", s): cur["_edid"] += s; continue
+    m = re.match(r"^(\d+)x(\d+) \(0x[0-9a-f]+\).*?(\*current)?.*?(\+preferred)?\s*$", line.strip())
+    if m and line.startswith("  ") and not line.startswith("    "):
+        mode = {"width": int(m.group(1)), "height": int(m.group(2)), "refresh": 0.0,
+                "current": "*current" in line, "preferred": "+preferred" in line}
+        cur["modes"].append(mode); continue
+    m = re.search(r"v: .*clock\s+([\d.]+)Hz", line)
+    if m and mode is not None: mode["refresh"] = round(float(m.group(1)), 3); mode = None
+for o in outs:
+    o["make"], o["model"], o["serial"] = edid_names(o["_edid"]) if o["_edid"] else ("", "", "")
+    # "DEL DELL S2725DSM": drop the PNP code when the model already names the brand
+    if o["model"].upper().startswith(o["make"]): o["make"] = ""
+    o["description"] = (o["make"] + " " + o["model"]).strip() or o["name"]
+    # a cloned output can run on a mode borrowed from the other output, listed
+    # only on its header line: fall back to the own mode with that geometry
+    # (a rotated output reports its geometry swapped; the modes are the panel s own)
+    if o["_geom"] and not any(m["current"] for m in o["modes"]):
+        w, h = o["_geom"]
+        if o["transform"] in ("90", "270"): w, h = h, w
+        for m in o["modes"]:
+            if (m["width"], m["height"]) == (w, h): m["current"] = True; break
+    del o["_edid"]; del o["_geom"]
+print(json.dumps(outs))'
+}
+
+# wlr-randr-style arguments -> xrandr arguments
+torandr() {
+    local args=() out="" rot
+    while [ $# -gt 0 ]; do
+        case "$1" in
+        --output) out=$2; args+=(--output "$2"); shift 2 ;;
+        --off) args+=(--off); shift ;;
+        --on) shift ;;
+        --mode) args+=(--mode "${2%@*}" --rate "${2#*@}"); shift 2 ;;
+        --pos) args+=(--pos "${2/,/x}"); shift 2 ;;
+        --transform)
+            case "$2" in 90) rot=left ;; 180) rot=inverted ;; 270) rot=right ;; *) rot=normal ;; esac
+            args+=(--rotate "$rot"); shift 2 ;;
+        --scale|--adaptive-sync) shift 2 ;;      # no such thing on X11
+        *) echo "displays: argumento desconocido $1" >&2; return 2 ;;
+        esac
+    done
+    [ -n "$out" ] || return 0
+    xrandr "${args[@]}"
+}
+
+# Monitors plugged in since the last look (the connected ones are kept in
+# $seen), printed as "name left-neighbour" for each that is off and that the
+# kept layout doesn't name, or names for another monitor on that port. X
+# turns none on by itself. Only newcomers: an output turned off on purpose
+# stays off. With "record", only looks.
+seen=${XDG_RUNTIME_DIR:-/tmp}/displays-seen
+newcomers() {
+    list | python3 -c '
+import json, sys
+state, seen, record = sys.argv[1], sys.argv[2], sys.argv[3] == "record"
+def lines(p):
+    try:
+        return [l.rstrip("\n") for l in open(p)]
+    except OSError:
+        return None
+outs = json.load(sys.stdin)
+for o in outs:
+    o["id"] = o["name"] + "\t" + "|".join((o["make"], o["model"], o["serial"]))
+before = lines(seen)
+with open(seen, "w") as f:
+    f.writelines(o["id"] + "\n" for o in outs)
+if record or before is None:
+    sys.exit()
+kept = {(f[0], f[7]) for f in (l.split("\t") for l in lines(state) or []) if len(f) >= 8}
+on = [o for o in outs if o["enabled"]]
+right = max(on, key=lambda o: o["position"]["x"])["name"] if on else ""
+for o in outs:
+    name, ident = o["id"].split("\t")
+    if o["id"] in before or o["enabled"] or (name, ident) in kept or (name, "") in kept:
+        continue
+    print(name, right)
+    right = name' "$state" "$seen" "${1:-}"
+}
+
+case "${1:-list}" in
+list)   list ;;
+randr)  shift; torandr "$@" ;;
+save)   cat > "$state" ;;
+forget) rm -f "$state" ;;
+seen)   newcomers record ;;
+hotplug)
+    # an unplugged monitor keeps its place on the screen with some drivers
+    # (the mouse and windows wander into it, its bar stays): turn it off
+    xrandr --current | sed -nE 's/^(\S+) disconnected (primary )?[0-9]+x[0-9]+\+.*/\1/p' |
+        while read -r name; do xrandr --output "$name" --off; done
+    "$0" apply
+    newcomers | while read -r name right; do
+        if [ -n "$right" ]; then xrandr --output "$name" --auto --right-of "$right"
+        else xrandr --output "$name" --auto; fi
+    done
+    # picom with vsync repaints non-stop after the outputs change (a few
+    # percent of a core while idle); started again, it settles
+    if pgrep -x -u "$(id -u)" picom >/dev/null; then
+        pkill -x -u "$(id -u)" picom
+        for _ in $(seq 1 30); do pgrep -x -u "$(id -u)" picom >/dev/null || break; sleep 0.1; done
+        picom --config "${state%/*}/picom/picom.conf" -b
+    fi
+    wp=$(cat "${state%/*}/wallpaper-current" 2>/dev/null)
+    [ -f "$wp" ] || wp=${state%/*}/wallpaper/cozy-window.png   # the shipped one until a pick, as autostart.sh
+    [ -f "$wp" ] && { sleep 1; feh --no-fehbg --bg-fill "$wp"; }
+    # a new monitor's bar is a fresh window, which the window manager maps
+    # inside its margins (shifted right, its end off-screen): snap it back
+    "${state%/*}/scripts/bar" place >/dev/null 2>&1
+    ;;
+apply)
+    [ -s "$state" ] || exit 0
+    now=$(list | python3 -c '
+import json, sys
+for o in json.load(sys.stdin):
+    m = next((m for m in o["modes"] if m.get("current")), None)
+    mode = "%dx%d@%g" % (m["width"], m["height"], m["refresh"]) if m else ""
+    p = o["position"]
+    print("\t".join([o["name"], "on" if o["enabled"] else "off", mode, "%d,%d" % (p["x"], p["y"]),
+                     "1", o["transform"], "0", "|".join((o["make"], o["model"], o["serial"]))]))')
+    args=()
+    # shellcheck disable=SC2034  # scale and vrr are the file's columns, nothing on X11
+    while IFS=$'\t' read -r name on mode pos scale transform vrr ident; do
+        [ -n "$name" ] || continue
+        line=$(printf '%s\n' "$now" | awk -F'\t' -v n="$name" '$1 == n')
+        [ -n "$line" ] || continue                       # not plugged in
+        have=${line##*	}
+        [ -n "$ident" ] && [ "$ident" != "$have" ] && continue   # another monitor on that port
+        wanted=$(printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s' "$name" "$on" "$mode" "$pos" "1" "$transform" "0" "$have")
+        [ "$line" = "$wanted" ] && continue              # already so
+        args+=(--output "$name")
+        if [ "$on" = off ]; then args+=(--off)
+        else args+=(--on --mode "$mode" --pos "$pos" --transform "$transform"); fi
+    done < "$state"
+    [ "${#args[@]}" -gt 0 ] && exec "$0" randr "${args[@]}"
+    exit 0      # nothing differs: already the kept layout
+    ;;
+*)  echo "usage: displays list|randr …|save|apply|forget|seen|hotplug" >&2; exit 2 ;;
+esac

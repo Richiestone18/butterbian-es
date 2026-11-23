@@ -80,7 +80,10 @@ if [ -n "${MIX:-}" ] && [ -d "$MIX" ] && [ -n "${EXPECTED_V6:-}" ]; then
     fi
     cp -r "$T/mix" "$T/mix0"
     [ "${N_ING:-0}" -gt 0 ] && pass "--check sees $N_ING to translate" || fail "--check sees no files to translate in the mix"
-    grep -q '"conectando a "' "$T/mix/quickshell-network/shell.qml" && fail "--check translated something" || pass "--check wrote nothing"
+    sha_antes=$(cd "$T/mix" && find . -type f | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
+    run --check >/dev/null
+    sha_despues=$(cd "$T/mix" && find . -type f | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)
+    [ "$sha_antes" = "$sha_despues" ] && pass "--check wrote nothing (mismo sha256 del arbol)" || fail "--check translated something"
     run | sed 's/^/     /'
     d=$(same_as "$EXPECTED_V6"); [ "$d" = 0 ] && pass "apply leaves the 35 identical to v6" || fail "$d file(s) differ from v6"
     grep -q '"nada pendiente"' "$T/mix/quickshell/NotifyPopup.qml" && pass "new NotifyPopup translated" || fail "NotifyPopup stayed in English"
