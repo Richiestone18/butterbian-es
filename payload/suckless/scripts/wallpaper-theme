@@ -18,6 +18,19 @@ IMG="$1" BG="$2" ALTBG="$3" FG="$4" BORDER="$5"
 PRIMARY="$6" SECONDARY="$7" ALERT="$8" DISABLED="$9"
 shift 9  # $1..$16 are now the ANSI terminal colors
 
+# Urgent things (notifications, rofi's urgent rows) take the alert color,
+# unless it sits too close to the primary to tell apart (a warm wallpaper
+# gives a warm alert): then a plain red, or the second color if the
+# primary is red itself
+URGENT=$(awk -v p="$PRIMARY" -v a="$ALERT" -v s="$SECONDARY" '
+    function hx(c, i) { return index("0123456789abcdef", tolower(substr(c, i, 1))) - 1 }
+    function ch(c, o) { return hx(c, o) * 16 + hx(c, o + 1) }
+    function d(x, y) { return sqrt((ch(x,2)-ch(y,2))^2 + (ch(x,4)-ch(y,4))^2 + (ch(x,6)-ch(y,6))^2) }
+    BEGIN { r = "#e5534b"; print (d(p, a) >= 80 ? a : (d(p, r) >= 80 ? r : s)) }')
+URGENT_BG=$(awk -v a="$URGENT" -v b="$BG" 'function hx(s, i) { return index("0123456789abcdef", tolower(substr(s, i, 1))) - 1 }
+    function ch(s, o) { return hx(s, o) * 16 + hx(s, o + 1) }
+    BEGIN { r = 0.2; printf "#%02x%02x%02x", ch(a,2)*r + ch(b,2)*(1-r) + 0.5, ch(a,4)*r + ch(b,4)*(1-r) + 0.5, ch(a,6)*r + ch(b,6)*(1-r) + 0.5 }')
+
 [ -f "$IMG" ] || { echo "no such wallpaper: $IMG" >&2; exit 1; }
 
 # Serialize concurrent runs — the last pick wins whole. Spawned daemons
@@ -93,7 +106,7 @@ cat > "$CONFIG_DIR/rofi/colors.rasi" <<EOF
     accent:      $PRIMARY;
     accent-2:    $SECONDARY;
     border:      $PRIMARY;
-    urgent:      $ALERT;
+    urgent:      $URGENT;
     selected-fg: $FG;
     entry-fg:    $SECONDARY;
     prompt-fg:   $PRIMARY;
@@ -115,10 +128,10 @@ set_dunst bg_normal          "$BG"
 set_dunst fg_normal          "$FG"
 set_dunst frame_normal       "$PRIMARY"
 set_dunst highlight_normal   "$PRIMARY"
-set_dunst bg_critical        "$BG"
+set_dunst bg_critical        "$URGENT_BG"
 set_dunst fg_critical        "$FG"
-set_dunst frame_critical     "$ALERT"
-set_dunst highlight_critical "$ALERT"
+set_dunst frame_critical     "$URGENT"
+set_dunst highlight_critical "$URGENT"
 
 # 5. Kitty — session-local config dir (KITTY_CONFIG_DIRECTORY); SIGUSR1
 #    reloads running instances. ~/.config/kitty is left alone.
@@ -212,116 +225,10 @@ if [ ! -e "$USER_DUNSTRC" ] || [ "$(readlink -f "$USER_DUNSTRC")" = "$(readlink 
     ln -sfn "$CONFIG_DIR/dunst/dunstrc" "$USER_DUNSTRC"
 fi
 
-# 7. GTK — wpgtk-style recolor: copy Orchis-Nord-Template and substitute its
-#    (fixed, known) palette with ours. Text in Orchis-dark is white-alpha,
-#    so only accents/surfaces need mapping. Two alternating theme names so
-#    xsettingsd always sees a name change and live-restyles GTK3 apps.
-# the template lives in ~/.themes (theme installer) or /usr/share/themes
-# (butterrepo's orchis-gtk-theme-butter); the user copy wins
-GTK_SRC="$HOME/.themes/Orchis-Nord-Template"
-[ -d "$GTK_SRC" ] || GTK_SRC="/usr/share/themes/Orchis-Nord-Template"
-GTK3_CONF="$HOME/.config/gtk-3.0/settings.ini"
-# The substitutions below target the plain-Nord build's exact hexes. A missing
-# template (theme installer failed, or a config-only install) or a wrong build
-# would leave GTK silently unthemed - say so on screen instead.
-gtk_template_ok() {
-    if [ ! -d "$GTK_SRC" ]; then
-        notify-send -a "Wallpaper" -u critical "GTK sin tema" \
-            "Falta Orchis-Nord-Template. Vuelve a correr el instalador del tema:\ntheming/install_wallpaper_theme.sh"
-        return 1
-    fi
-    if ! grep -qi '#242932' "$GTK_SRC/gtk-3.0/gtk.css" 2>/dev/null; then
-        notify-send -a "Wallpaper" -u critical "GTK sin tema" \
-            "Orchis-Nord-Template no es la versión Nord simple. Vuelve a correr el instalador del tema:\ntheming/install_wallpaper_theme.sh"
-        return 1
-    fi
-}
-if gtk_template_ok; then
-    rgb() { h=${1#\#}; printf '%d, %d, %d' \
-        "0x$(printf %s "$h" | cut -c1-2)" \
-        "0x$(printf %s "$h" | cut -c3-4)" \
-        "0x$(printf %s "$h" | cut -c5-6)"; }
-
-    cur=$(sed -n 's/^gtk-theme-name=//p' "$GTK3_CONF" 2>/dev/null)
-    [ "$cur" = "Orchis-Wallpaper" ] && NEW="Orchis-Wallpaper-B" || NEW="Orchis-Wallpaper"
-    DST="$HOME/.themes/$NEW"
-    mkdir -p "$HOME/.themes"
-    rm -rf "$DST"
-    cp -r "$GTK_SRC" "$DST"
-    sed -i "s/^Name=.*/Name=$NEW/" "$DST/index.theme"
-
-    # ANSI greens/yellows/magentas ($3/$4/$6 after the shift) keep Orchis's
-    # semantic colors wallpaper-tinted instead of collapsing onto primary.
-    find "$DST/gtk-3.0" "$DST/gtk-4.0" \( -name '*.css' -o -name '*.svg' \) \
-        -exec sed -i \
-        -e "s/#89a3c2/$PRIMARY/gI"  -e "s/rgba(137, 163, 194/rgba($(rgb "$PRIMARY")/g" \
-        -e "s/#242932/$BG/gI"       -e "s/rgba(28, 31, 38/rgba($(rgb "$BG")/g" \
-        -e "s/#1c1f26/$BG/gI"       -e "s/rgba(22, 24, 29/rgba($(rgb "$BG")/g" \
-        -e "s/#1e222a/$BG/gI" \
-        -e "s/#333a47/$ALTBG/gI" \
-        -e "s/#363c49/$BORDER/gI" \
-        -e "s/#d4878f/$ALERT/gI"    -e "s/rgba(212, 135, 143/rgba($(rgb "$ALERT")/g" \
-        -e "s/#8bd9b4/$3/gI" \
-        -e "s/#eac985/$4/gI" \
-        -e "s/#c89dbf/$6/gI" \
-        {} +
-
-    sed -i "s/^gtk-theme-name=.*/gtk-theme-name=$NEW/" "$GTK3_CONF"
-
-    # Icons — pick the installed Colloid variant whose folders are nearest
-    # the palette's primary hue (selection, not recoloring). The folders
-    # decide, not the names: reds, golds and yellows take Orange's (the only
-    # warm ones; Gruvbox's are sage), purples Purple's, pinks Pink's; a
-    # muted blue Nord's slate (#89a3c2), a vivid one Colloid's sky blue.
-    # Grey for washed-out palettes. Skipped if not installed.
-    R=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c1-2)")
-    G=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c3-4)")
-    B=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c5-6)")
-    set -- $(awk -v r="$R" -v g="$G" -v b="$B" 'BEGIN{
-        mx=r; if(g>mx)mx=g; if(b>mx)mx=b
-        mn=r; if(g<mn)mn=g; if(b<mn)mn=b
-        d=mx-mn
-        if(d==0 || mx==0){print "0 0"; exit}
-        if(mx==r) h=(g-b)/d; else if(mx==g) h=2+(b-r)/d; else h=4+(r-g)/d
-        h*=60; if(h<0)h+=360
-        printf "%d %d", h, (d/mx)*100}')
-    HUE=$1; SAT=$2
-    if   [ "$SAT" -lt 15 ]; then ICONS="Colloid-Grey-Dracula-Dark"
-    elif [ "$HUE" -lt 95 ];  then ICONS="Colloid-Orange-Dark"
-    elif [ "$HUE" -lt 165 ]; then ICONS="Colloid-Everforest-Dark"
-    elif [ "$HUE" -lt 245 ] && [ "$SAT" -lt 45 ]; then ICONS="Colloid-Nord-Dark"
-    elif [ "$HUE" -lt 245 ]; then ICONS="Colloid-Dark"
-    elif [ "$HUE" -lt 315 ]; then ICONS="Colloid-Purple-Dark"
-    else ICONS="Colloid-Pink-Dark"; fi
-    if [ -d "$HOME/.local/share/icons/$ICONS" ] || [ -d "/usr/share/icons/$ICONS" ]; then
-        sed -i "s/^gtk-icon-theme-name=.*/gtk-icon-theme-name=$ICONS/" "$GTK3_CONF"
-        [ -f "$HOME/.xsettingsd" ] && \
-            sed -i "s|^Net/IconThemeName .*|Net/IconThemeName \"$ICONS\"|" "$HOME/.xsettingsd"
-    fi
-
-    if [ -f "$HOME/.xsettingsd" ]; then
-        sed -i "s|^Net/ThemeName .*|Net/ThemeName \"$NEW\"|" "$HOME/.xsettingsd"
-        killall xsettingsd 2>/dev/null || true
-        xsettingsd >/dev/null 2>&1 9>&- &
-    fi
-
-    # Portal-using apps (GTK4/libadwaita, flatpaks) ask the settings portal,
-    # which reads gsettings rather than xsettingsd — keep it in step so they
-    # restyle too. Native X11 GTK3 keeps following xsettingsd as before.
-    if command -v gsettings >/dev/null 2>&1; then
-        gsettings set org.gnome.desktop.interface gtk-theme "$NEW" 2>/dev/null || true
-        if [ -d "$HOME/.local/share/icons/$ICONS" ] || [ -d "/usr/share/icons/$ICONS" ]; then
-            gsettings set org.gnome.desktop.interface icon-theme "$ICONS" 2>/dev/null || true
-        fi
-        gsettings set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null || true
-    fi
-
-    # GTK4/libadwaita reads ~/.config/gtk-4.0 directly (new apps pick it up)
-    mkdir -p "$HOME/.config/gtk-4.0"
-    for f in assets gtk.css gtk-dark.css; do
-        ln -sfn "$DST/gtk-4.0/$f" "$HOME/.config/gtk-4.0/$f"
-    done
-fi
+# 7. GTK and icons — scripts/gtk-theme (install.sh runs it too, with the
+#    shipped palette). The ANSI green, yellow and magenta tint Orchis's
+#    semantic colors.
+"$CONFIG_DIR/scripts/gtk-theme" "$BG" "$ALTBG" "$BORDER" "$PRIMARY" "$ALERT" "$3" "$4" "$6" || true
 
 # 8. Reload — dunst re-reads its file in place (dunstctl reload), or is
 #    started again where it can't and then waited for, so the notice below

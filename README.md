@@ -1,129 +1,165 @@
-# Traducción al español para butterdwm (dwm + Quickshell)
+# Spanish translation for butterdwm (dwm + Quickshell)
 
-Traduce al español (es_MX) **butterdwm** de [JustAGuy Linux](https://justaguy.dev/butter/dwm):
-dwm con la barra de **Quickshell**, en Debian 13. Cubre la barra, la app de red,
-la ayuda de atajos (`Super+/`) y los avisos de sus scripts. Además aplica unos
-arreglos para que la barra funcione bien en español.
+Translates **butterdwm** by [JustAGuy Linux](https://justaguy.dev/butter/dwm)
+into Spanish (es_MX): dwm with the **Quickshell** bar, on Debian 13. It covers
+the bar, the network app, the shortcut help (`Super+/`) and the messages of its
+scripts. It also applies fixes so the bar works well in Spanish.
 
-**Versión 4**: hecha y probada sobre butterdwm `d63645d` (6 de noviembre de 2026).
+**Version 7**: built and tested on butterdwm `35da28a` (November 20, 2026).
+It also migrates a machine that already had version 6: a file that is an
+*earlier* translation of this package (`translated-before.tsv`) is
+re-translated instead of being left as is. Your own edits are still kept.
+The generator (`tools/`) was redesigned so a future butterdwm version is
+translated with a single command: `bash tools/regenerate.sh --new <commit>`
+(see `tools/README.md`).
 
-## Instalación rápida
+## Quick install
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Richiestone18/butterbian-es/main/install.sh | bash
 ```
 
-Revisar sin cambiar nada, o deshacer:
+Check without changing anything, or undo:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/Richiestone18/butterbian-es/main/install.sh | bash -s -- --check
 curl -fsSL https://raw.githubusercontent.com/Richiestone18/butterbian-es/main/install.sh | bash -s -- --restore
 ```
 
-Al terminar, pulsa **Super+Ctrl+R** para reiniciar la barra. Si lo corriste desde
-una terminal de tu propia sesión, el script la reinicia solo.
+When done, press **Super+Ctrl+R** to restart the bar. If you ran it from a
+terminal in your own session, the script restarts it for you.
 
-## Seguro por diseño
+## Safe by design
 
-- **Nunca mezcla versiones.** Un archivo se reemplaza solo si es *idéntico*
-  (sha256) al original en inglés de la versión de butterdwm para la que se hizo
-  la traducción (`manifiesto.txt`). Si lo editaste, o tu butterdwm es otra
-  versión, se queda como está y el script te avisa.
-- **Respeta tus atajos.** `keybinds.conf` se traduce línea por línea: solo cambia
-  las descripciones que siguen en el inglés original.
-- **Respaldo primero.** Antes de tocar nada guarda `~/butterbian-es-backup-FECHA.tar.gz`,
-  y `--restore` deja todo como estaba.
-- **Sin sudo.** Todo se escribe en `~/.config/suckless`.
-- **No reinicia la barra desde SSH.** Una barra lanzada desde SSH queda fuera de
-  tu sesión gráfica. Las apps que abras desde ella (Synaptic, GParted) no podrían
-  pedirte la contraseña y no abrirían. Desde SSH te pide Super+Ctrl+R.
-- **No hace falta recompilar dwm.** La ayuda de atajos lee `keybinds.conf` directamente.
+- **Never mixes versions.** A file is only replaced if it is *identical*
+  (sha256) to the original English file of the butterdwm version this
+  translation was made for (`manifest.txt`). If you edited it, or your
+  butterdwm is another version, it stays as is and the script tells you.
+- **Respects your shortcuts.** `keybinds.conf` is translated line by line: only
+  the descriptions that still match the English original change.
+- **Backup first.** Before touching anything it saves `~/butterbian-es-backup-FECHA.tar.gz`,
+  and `--restore` leaves everything as it was.
+- **No sudo.** Everything is written to `~/.config/suckless`.
+- **Does not restart the bar over SSH.** A bar launched from SSH ends up
+  outside your graphical session. Apps you open from it (Synaptic, GParted)
+  could not ask for your password and would not open. Over SSH it asks you for
+  Super+Ctrl+R.
+- **No need to recompile dwm.** The shortcut help reads `keybinds.conf` directly.
 
-## Qué traduce
+## What it translates
 
-- **Barra** (`quickshell/`, 28 archivos): menú de comandos, lanzador, métricas,
-  volumen, clima y radar, notificaciones, energía, pantallas, calendario y el
-  panel de configuración, incluidos sus editores de atajos, reglas, diseño, barra y fondo.
-- **App de red** (`quickshell-network/`, `Super+Shift+N`): Wi-Fi, redes conocidas,
-  ping, compartir por QR, Bluetooth, Tailscale y todos los mensajes de estado.
-- **Atajos** (`dwm/keybinds.conf`): las 79 descripciones de la ayuda.
+- **Bar** (`quickshell/`, 29 files): command menu, launcher, metrics, volume,
+  weather and radar, notifications, power, displays, calendar and the settings
+  panel, including its keybinding, rules, layout, bar and wallpaper editors.
+- **Network app** (`quickshell-network/`, `Super+Shift+N`): Wi-Fi, known
+  networks, ping, QR sharing, Bluetooth, Tailscale and every status message.
+- **Shortcuts** (`dwm/keybinds.conf`): the 79 descriptions of the help.
 - **Scripts** (`scripts/`):
-  - en la ayuda, las etiquetas automáticas ("Ver etiqueta 1", "Diseño: mosaico")
-    y los nombres de las teclas (Espacio, Retroceso, Subir vol…);
-  - los avisos al aplicar atajos y al cambiar el tema del fondo, y la bienvenida;
-  - el menú de energía de respaldo de rofi.
+  - in the help, the automatic labels ("Ver etiqueta 1", "Diseño: mosaico")
+    and the key names (Espacio, Retroceso, Subir vol...);
+  - the notices when applying shortcuts and when changing the wallpaper theme,
+    and the welcome message;
+  - the rofi fallback power menu;
+  - the GTK notices (`scripts/gtk-theme`) and the radar errors the card shows
+    (`scripts/radar`).
 
-## Qué NO traduce (a propósito)
+## What it does NOT translate (on purpose)
 
-Algunos textos parecen interfaz, pero el programa los usa como datos. Si se
-traducen, algo deja de funcionar:
+Some texts look like UI but the program uses them as data. If they are
+translated, something stops working:
 
-- nombres de teclas que se escriben en `keybinds.conf` (`Return`, `Left`, `Prior`…);
-- etiquetas de sensores (`Package id 0`, `Composite`) y la señal `kill -s KILL`;
-- campos de nmcli (`IN-USE,SIGNAL`) y urgencias de notificaciones (`CRITICAL`, `LOW`);
-- la categoría `Settings` de los `.desktop`, los estados de Tailscale y la salida
-  de bluetoothctl y xrandr;
-- los títulos de ventana que usa `rules.conf` (`Network`, `butterdwm settings`).
+- key names written to `keybinds.conf` (`Return`, `Left`, `Prior`...);
+- sensor labels (`Package id 0`, `Composite`) and the `kill -s KILL` signal;
+- nmcli fields (`IN-USE,SIGNAL`) and notification urgencies (`CRITICAL`, `LOW`);
+- the `Settings` category of `.desktop` files, Tailscale states and
+  bluetoothctl / xrandr output;
+- the window titles used by `rules.conf` (`Network`, `butterdwm settings`).
 
-## Arreglos que aplica
+## Fixes it applies
 
-1. **Aviso falso de batería en equipos sin pila.** El dispositivo agregado de
-   UPower (`DisplayDevice`, o tipo `unknown` con 0% y sin nivel) ya no cuenta
-   como batería.
-2. **Reloj en español.** `Qt.formatDateTime()` ignora el locale. Ahora se usa
-   `toLocaleString()`, que muestra `sáb 7 nov 2:38 p.m.`. La hora del radar del clima va igual.
-3. **Calendario en español.** Meses y días en español. La semana empieza en
-   domingo, como en México, con encabezados y cuadrícula alineados.
-4. **Batería llena y enchufada** cuenta como "cargando" (el kernel escribe `Full`).
-5. **Errores de nmcli** en rojo, digan `failed` o `falló`.
-6. **Tipos de dispositivo** de UPower en español: Mouse, Teclado, Audífonos, Control…
+1. **False low-battery warning on desktops.** The aggregate UPower device
+   (`DisplayDevice`, or kind `unknown` with 0% and no level) no longer counts
+   as a battery.
+2. **Clock in Spanish.** `Qt.formatDateTime()` ignores the locale. Now it uses
+   `toLocaleString()`, which shows `sáb 7 nov 2:38 p.m.`. The weather radar
+   time works the same way.
+3. **Calendar in Spanish.** Months and weekdays in Spanish. The week starts on
+   Sunday, as in Mexico, with aligned headers and grid.
+4. **Full and plugged-in battery** counts as "charging" (the kernel writes `Full`).
+5. **nmcli errors in red**, whether they say `failed` or `falló`.
+6. **UPower device types in Spanish**: Mouse, Teclado, Audífonos, Control...
+7. **Power menu**: p/c/r/a keys (screen, log out, reboot, shut down) and the
+   short "confirmar" hint that does not overlap the label.
 
-## Requisitos
+## Requirements
 
-- butterdwm instalado (`~/.config/suckless`) en Debian 13.
-- `bash`, `curl`, `tar`, `awk` y `sha256sum` (Debian ya los trae).
-- Locale `es_MX.UTF-8` (`LANG=es_MX.UTF-8`) para que Qt dé fechas y textos en español.
+- butterdwm installed (`~/.config/suckless`) on Debian 13.
+- `bash`, `curl`, `tar`, `awk` and `sha256sum` (Debian ships them).
+- Locale `es_MX.UTF-8` (`LANG=es_MX.UTF-8`) so Qt gives dates and texts in Spanish.
 
-## Si tu butterdwm es más nuevo
+## If your butterdwm is newer
 
-`--check` dice cuántos archivos no coinciden con la versión de este paquete.
-Esos se quedan en inglés, sin romper nada, hasta que haya una versión de
-butterbian-es para tu butterdwm. La carpeta `herramientas/` trae el generador
-y las pruebas para hacerla.
+`--check` tells you how many files do not match this package's version. They
+stay in English, without breaking anything, until there is a butterbian-es
+version for your butterdwm. The `tools/` folder has the generator (accumulated
+dictionary + build + regenerate.sh) to make one in a single command;
+see `tools/README.md`.
 
-## Notas
+## Notes
 
-- `Wired connection 1` es el nombre del perfil de NetworkManager, no texto de la
-  barra. Si lo quieres en español:
+- `Wired connection 1` is the NetworkManager profile name, not bar text. If you
+  want it in Spanish:
   `sudo nmcli connection modify "Wired connection 1" connection.id "Conexión cableada 1"`
 
-## Historial
+## Changelog
 
-- **v4** (7-nov-2026): rehecha sobre butterdwm `d63645d`, con instalador por sha256.
-  Corrige tres problemas de la v3:
-  - 8 traducciones que rompían funciones: forzar salida, señal Wi-Fi,
-    temperatura de CPU y disco, colores de notificaciones, grabar atajos, apps de
-    configuración en el lanzador y nombre del monitor;
-  - el bug que duplicaba `desc=` en `keybinds.conf` y rompía la compilación de dwm;
-  - la mezcla de versiones (copiaba los QML de octubre sobre butterdwm más nuevos).
+- **v7** (2026-11-22): rebuilt on butterdwm `35da28a`:
+  - the new texts of that version: the Tailscale device list in the network
+    app (`Super+Shift+N`), the themes row of the wallpaper tab, the radar
+    card, and the status texts `Today`, `applying…`, `disconnecting…`;
+  - `scripts/gtk-theme` (upstream moved the GTK notices there) and the radar
+    errors the card shows (`scripts/radar`);
+  - the shortcut help (`Super+/`) works: `dwm/keybinds.conf` used to stay in
+    English because Gawk in a UTF-8 locale rejected `[\200-\277]`. The
+    installer now runs awk with `LC_ALL=C` and its `desc=` regex needs no
+    backslashes;
+  - a machine with version 6 updates itself: `translated-before.tsv` keeps
+    the sha256 of the files this package installed before, so they are
+    recognised as ours and re-translated, not kept as another version.
+- **v6** (2026-11-11): same payload as v5 (verified byte by byte), but the
+  generator was redesigned for any future version: persistent accumulated
+  dictionary (`tools/dictionary.tsv`), regex-tolerant anchors in the build, and
+  a single orchestrator `regenerate.sh --new <commit>`. The package is now
+  self-contained (clone and staging live inside `work/`).
+- **v5** (2026-11-10): rebuilt on butterdwm `a511dab`, with the power-menu
+  fixes (p/c/r/a keys, "confirmar" hint).
+- **v4** (2026-11-07): rebuilt on butterdwm `d63645d`, with a sha256 installer.
+  Fixes three v3 problems:
+  - 8 translations that broke features: force logout, Wi-Fi signal, CPU and
+    disk temperature, notification colors, recording shortcuts, settings apps
+    in the launcher and the monitor name;
+  - the bug that duplicated `desc=` in `keybinds.conf` and broke the dwm build;
+  - the version mixing (it copied the October QML files over newer butterdwm).
 
-  Agrega lo nuevo de upstream (editores de reglas y atajos, Pomodoro, redes
-  conocidas) y los textos de los scripts.
-- **v3** (6-nov-2026): payload de QML traducidos y protección de `desc=` editados.
+  Adds the new upstream bits (rules and keybinding editors, Pomodoro, known
+  networks) and the script texts.
+- **v3** (2026-11-06): translated QML payload and protection of edited `desc=`.
 
-## Estructura
+## Structure
 
 ```
-install.sh                   instalador de una línea (descarga el repo y corre el script)
-traducir-butterbian-es.sh    aplicar / --check / --restore
-manifiesto.txt               sha256 del original y del traducido de cada archivo
-atajos.tsv                   descripciones de atajos: inglés → español
-payload/suckless/            los 35 archivos traducidos
-herramientas/                generador de la traducción y pruebas (ver herramientas/LEEME.md)
+install.sh                   one-line installer (downloads the repo and runs the script)
+translate-butterbian-es.sh   apply / --check / --restore
+manifest.txt                 sha256 of the original and the translated file of each file
+shortcuts.tsv                shortcut descriptions: English -> Spanish
+payload/suckless/            the 38 translated files
+translated-before.tsv        sha256 of the Spanish files earlier versions installed
+tools/                       v6 generator (v7 package) (accumulated dictionary + build + regenerate.sh)
+work/                        butterdwm clone and translation staging (created by regenerate.sh)
 ```
 
-## Licencia
+## License
 
-MIT. Los archivos de `payload/` derivan de butterdwm de
-[JustAGuy Linux](https://justaguy.dev/butter/dwm), con la traducción y los
-arreglos de este repo.
+MIT. The files in `payload/` derive from butterdwm by
+[JustAGuy Linux](https://justaguy.dev/butter/dwm), with the translation and
+fixes of this repo.

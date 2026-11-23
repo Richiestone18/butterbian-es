@@ -2,8 +2,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Weather radar: the last hour of RainViewer rain looping over Esri's dark
-// basemap, centered on the forecast's spot. scripts/radar caches a 3x3
+// Weather radar: the last hour of rain looping over Esri's dark basemap,
+// centered on the forecast's spot; NOAA's radar inside the continental
+// US, RainViewer's elsewhere. scripts/radar caches a 3x3
 // tile block and prints where; this draws land, rain, then place names.
 // Buttons and the wheel zoom, the time chip pauses, a click opens Windy
 // in the browser. Frames refresh every five minutes while shown.
@@ -13,6 +14,8 @@ Item {
     property real lat: 0
     property real lon: 0
     property int zoom: 7          // wanted; 5 = a few states, 8 = the city
+    // NOAA's radar is sharp enough for two steps closer (the neighborhood)
+    readonly property int maxZoom: source === "noaa" ? 10 : 8
     property bool active: false   // fetch + animate only while shown
 
     // what's on screen (from the last successful fetch)
@@ -21,6 +24,7 @@ Item {
     property real cy: 0
     property string baseDir: ""
     property var frames: []       // {t, dir}, oldest first
+    property string source: ""    // "noaa" or "rainviewer"
     property int frame: 0
     property bool paused: false
     property bool loading: false
@@ -57,7 +61,7 @@ Item {
 
     function parse(text) {
         const fr = []
-        let z = zoom, x = cx, y = cy, dir = baseDir
+        let z = zoom, x = cx, y = cy, dir = baseDir, src = source
         for (const line of text.split("\n")) {
             const p = line.split(" ")
             if (p[0] === "zoom")
@@ -67,6 +71,8 @@ Item {
                 y = parseFloat(p[2])
             } else if (p[0] === "base")
                 dir = p.slice(1).join(" ")
+            else if (p[0] === "source")
+                src = p[1]
             else if (p[0] === "frame")
                 fr.push({ t: parseInt(p[1]), dir: p.slice(2).join(" ") })
         }
@@ -77,12 +83,13 @@ Item {
         cx = x
         cy = y
         baseDir = dir
+        source = src
         frames = fr
         frame = fr.length - 1
         error = ""
     }
 
-    // loop: 10-minute frames at ~2/s, a longer hold on the newest
+    // loop: ~2 frames a second, a longer hold on the newest
     Timer {
         interval: view.frame === view.frames.length - 1 ? 1800 : 450
         repeat: true
@@ -159,7 +166,7 @@ Item {
         onClicked: Quickshell.execDetached(["xdg-open",
             "https://www.windy.com/-Weather-radar-radar?radar," + view.lat.toFixed(3)
             + "," + view.lon.toFixed(3) + "," + view.tz])
-        onWheel: wheel => view.zoom = Math.max(5, Math.min(8, view.zoom + (wheel.angleDelta.y > 0 ? 1 : -1)))
+        onWheel: wheel => view.zoom = Math.max(5, Math.min(view.maxZoom, view.zoom + (wheel.angleDelta.y > 0 ? 1 : -1)))
     }
 
     Txt {
@@ -212,7 +219,7 @@ Item {
             Rectangle {
                 id: zb
                 required property var modelData
-                readonly property bool can: view.zoom + modelData.d >= 5 && view.zoom + modelData.d <= 8
+                readonly property bool can: view.zoom + modelData.d >= 5 && view.zoom + modelData.d <= view.maxZoom
                 width: 22; height: 20; radius: 6
                 color: Qt.alpha(Theme.bg, zbMa.containsMouse ? 0.95 : 0.8)
 
@@ -238,7 +245,7 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: 4
-        text: "Esri · RainViewer"
+        text: "Esri · " + (view.source === "noaa" ? "NOAA" : "RainViewer")
         color: Qt.alpha(Theme.fg, 0.4)
         font.pixelSize: 8
     }

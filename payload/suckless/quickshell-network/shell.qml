@@ -4,8 +4,10 @@ import Quickshell.Io
 
 // Network: a connectivity app over nmcli and bluetoothctl, in its own qs
 // instance. Top to bottom: the connection you're on and how it's doing,
-// VPNs, known then new Wi-Fi, Bluetooth (right-click forgets; pairing
-// that needs a PIN is blueman's job), then rescan and advanced settings.
+// VPNs (Tailscale with its exit nodes and the tailnet's devices, a click
+// on one opens ssh to it), known then new Wi-Fi, Bluetooth (right-click
+// forgets; pairing that needs a PIN is blueman's job), then rescan and
+// advanced settings.
 // Sized to its content up to 80% of the screen, scrolling past that.
 ShellRoot {
     FloatingWindow {
@@ -108,7 +110,7 @@ ShellRoot {
 
         function connectTo(net) {
             if (net.inUse) {
-                run(["nmcli", "d", "disconnect", wifiDev], "disconnecting…")
+                run(["nmcli", "d", "disconnect", wifiDev], "desconectando...")
             } else if (savedUuid[net.ssid] && secured(net) && savedNoPw[net.ssid]) {
                 // saved, but without a password it can't work: ask right away
                 // instead of letting NetworkManager try and time out
@@ -370,6 +372,8 @@ ShellRoot {
         property int tsOnline: 0
         property string tsAuthUrl: ""
         property bool tsPick: false     // exit-node list expanded
+        property var tsPeers: []        // {name, host, ip, os, online}
+        property bool tsPeersOpen: false // device list expanded
         Process {
             id: tsProc
             command: ["sh", "-c", "command -v tailscale >/dev/null 2>&1 || exit 127; tailscale status --json 2>/dev/null"]
@@ -394,6 +398,15 @@ ShellRoot {
                             .sort((a, b) => (b.online - a.online) || a.name.localeCompare(b.name))
                         const ex = peers.find(p => p.ExitNode)
                         win.tsExit = ex ? ex.HostName : ""
+                        // ssh goes to the MagicDNS name, so ~/.ssh/config
+                        // Host entries apply; without MagicDNS, to the IP
+                        const magic = !!j.CurrentTailnet?.MagicDNSEnabled
+                        win.tsPeers = peers.map(p => {
+                            const ip = p.TailscaleIPs?.[0] ?? ""
+                            const dns = (p.DNSName ?? "").split(".")[0]
+                            return { name: p.HostName ?? dns, host: magic && dns !== "" ? dns : ip,
+                                     ip: ip, os: p.OS ?? "", online: !!p.Online }
+                        }).sort((a, b) => (b.online - a.online) || a.name.localeCompare(b.name))
                     } catch (e) {
                         win.tsPresent = false
                     }
@@ -759,18 +772,18 @@ ShellRoot {
         function btToggleDevice(d) {
             if (d.connected)
                 run(["bluetoothctl", "disconnect", d.mac],
-                    "disconnecting " + d.name + "…")
+                    "desconectando " + d.name + "…")
             else
                 run(["sh", "-c", "bluetoothctl connect " + d.mac + "; sleep 1; " +
                      "bluetoothctl info " + d.mac + " | grep -q 'Connected: yes'"],
-                    "connecting " + d.name + "…")
+                    "conectando " + d.name + "…")
         }
 
         // right-click on a known device: drop the pairing
         function btForget(d) {
             run(["sh", "-c", "bluetoothctl disconnect " + d.mac + " >/dev/null 2>&1; " +
                  "bluetoothctl remove " + d.mac],
-                "forgetting " + d.name + "…")
+                "olvidando " + d.name + "…")
         }
 
         // PIN-less pair+trust+connect; devices that want a PIN fail here
@@ -779,7 +792,7 @@ ShellRoot {
             run(["sh", "-c", "bluetoothctl pair " + d.mac +
                  " && bluetoothctl trust " + d.mac +
                  " && bluetoothctl connect " + d.mac],
-                "pairing " + d.name + "…")
+                "emparejando " + d.name + "…")
             btFound = btFound.filter(f => f.mac !== d.mac)
         }
 
@@ -949,7 +962,6 @@ ShellRoot {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 on: vr.active
-                onColor: Theme.green
                 onToggled: vr.toggled()
             }
         }
@@ -1276,42 +1288,51 @@ ShellRoot {
                         }
                     }
 
-                    // how it's doing
-                    Grid {
+                    // how it's doing, set in a tile
+                    Rectangle {
                         visible: win.primary !== null
                         width: parent.width
-                        columns: 2
-                        columnSpacing: 16
-                        rowSpacing: 4
-                        topPadding: 4
+                        height: stats.implicitHeight + 20
+                        radius: 8
+                        color: Qt.alpha(Theme.fg, 0.06)
 
-                        Stat {
-                            label: "Ping"
-                            value: win.pingMs >= 0 ? Math.round(win.pingMs) + " ms"
-                                 : win.lossPct === 100 ? "sin respuesta" : "…"
-                        }
-                        Stat {
-                            label: "Pérdida de paquetes"
-                            value: win.lossPct >= 0 ? win.lossPct + "%" : "…"
-                        }
-                        Stat {
-                            label: "Recibiendo"
-                            value: win.primary && win.netRates[win.primary.dev]
-                                   ? win.fmtRate(win.netRates[win.primary.dev].down) : "…"
-                        }
-                        Stat {
-                            label: "Enviando"
-                            value: win.primary && win.netRates[win.primary.dev]
-                                   ? win.fmtRate(win.netRates[win.primary.dev].up) : "…"
-                        }
-                        Stat {
-                            label: "Dirección IP"
-                            value: win.primary ? (win.addrs[win.primary.dev]?.ip || "—") : "—"
-                        }
-                        Stat {
-                            label: "Puerta de enlace"
-                            value: win.primary ? (win.addrs[win.primary.dev]?.gateway || "—") : "—"
-                        }
+                        Grid {
+                            id: stats
+                            x: 12
+                            y: 10
+                            width: parent.width - 24
+                            columns: 2
+                            columnSpacing: 16
+                            rowSpacing: 5
+
+                            Stat {
+                                label: "Ping"
+                                value: win.pingMs >= 0 ? Math.round(win.pingMs) + " ms"
+                                     : win.lossPct === 100 ? "sin respuesta" : "…"
+                            }
+                            Stat {
+                                label: "Pérdida de paquetes"
+                                value: win.lossPct >= 0 ? win.lossPct + "%" : "…"
+                            }
+                            Stat {
+                                label: "Recibiendo"
+                                value: win.primary && win.netRates[win.primary.dev]
+                                       ? win.fmtRate(win.netRates[win.primary.dev].down) : "…"
+                            }
+                            Stat {
+                                label: "Enviando"
+                                value: win.primary && win.netRates[win.primary.dev]
+                                       ? win.fmtRate(win.netRates[win.primary.dev].up) : "…"
+                            }
+                            Stat {
+                                label: "IP"
+                                value: win.primary ? (win.addrs[win.primary.dev]?.ip || "—") : "—"
+                            }
+                            Stat {
+                                label: "Puerta de enlace"
+                                value: win.primary ? (win.addrs[win.primary.dev]?.gateway || "—") : "—"
+                            }
+                    }
                     }
 
                     // the plumbing, small: interface and profile name
@@ -1387,13 +1408,59 @@ ShellRoot {
                             allowed: modelData.online && !active
                             label: modelData.name === "" ? "none" : modelData.name
                             ink: !modelData.online ? Theme.disabled : active ? Theme.accent : Theme.fg
-                            note: modelData.online ? "" : "offline"
+                            note: modelData.online ? "" : "sin conexión"
                             onClicked: {
                                 win.tsPick = false
                                 win.tsRun(["set", "--exit-node=" + exitRow.modelData.name],
                                           exitRow.modelData.name === "" ? "quitando el nodo de salida…"
                                           : "salir por " + exitRow.modelData.name + "…")
                             }
+                        }
+                    }
+
+                    // the tailnet's devices: online first; a click opens ssh
+                    // in a terminal (ssh's own config picks user, port, key)
+                    Item {
+                        visible: win.tsPresent && win.tsState === "Running" && win.tsPeers.length > 0
+                        width: parent.width
+                        height: 28
+
+                        Txt {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 26
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "dispositivos"
+                            color: Qt.alpha(Theme.fg, 0.6)
+                        }
+                        SmallButton {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            label: win.tsOnline + " en línea" + (win.tsPeersOpen ? "  󰅃" : "  󰅀")
+                            onClicked: win.tsPeersOpen = !win.tsPeersOpen
+                        }
+                    }
+
+                    Repeater {
+                        model: win.tsPresent && win.tsState === "Running" && win.tsPeersOpen ? win.tsPeers : []
+
+                        ListRow {
+                            id: peerRow
+                            required property var modelData
+                            height: 28
+                            indent: 26
+                            fadeMs: 0
+                            pointer: true
+                            allowed: modelData.online
+                            label: modelData.name
+                            ink: modelData.online ? Theme.fg : Theme.disabled
+                            note: modelData.online
+                                ? modelData.ip + (modelData.os !== "" ? " · " + modelData.os : "")
+                                : "sin conexión"
+                            // the terminal stays open only when ssh itself
+                            // fails (255), so its message can be read
+                            onClicked: Quickshell.execDetached(["kitty", "-e", "sh", "-c",
+                                'ssh "$1"; [ $? -ne 255 ] || { printf "\\npulsa enter para cerrar "; read _; }',
+                                "sh", peerRow.modelData.host])
                         }
                     }
 
@@ -1407,7 +1474,7 @@ ShellRoot {
                             external: modelData.external
                             detail: active ? win.rateText(name) : ""
                             onToggled: win.run(["nmcli", "c", active ? "down" : "up", "id", name],
-                                               (active ? "disconnecting " : "connecting ") + name + "…")
+                                               (active ? "desconectando " : "conectando ") + name + "…")
                         }
                     }
 
@@ -1608,7 +1675,7 @@ ShellRoot {
                         anchors.leftMargin: 10
                         anchors.verticalCenter: parent.verticalCenter
                         text: win.sigGlyph(netRow.modelData.signal)
-                        color: netRow.modelData.inUse ? Theme.accent : Qt.alpha(Theme.fg, 0.7)
+                        color: netRow.modelData.inUse ? Theme.accent : Theme.green
                         font.pixelSize: 15
                     }
 

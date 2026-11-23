@@ -36,6 +36,7 @@ BarModule {
     property bool btPresent: false
     property bool btOn: false
     property bool hasTimeshift: false
+    property bool hasButtertools: false
 
     Process {
         id: stateProc
@@ -47,6 +48,7 @@ BarModule {
             "\"$(brightnessctl -m -c backlight 2>/dev/null | head -n1)\" " +
             "\"$(xset q | awk '/timeout:/{print $2}')\" " +
             "\"$(bluetoothctl show 2>/dev/null | awk '/Powered:/ { print $2; exit }')\" " +
+            "\"$(command -v timeshift-launcher >/dev/null && echo timeshift)\" " +
             "\"$(command -v timeshift-launcher >/dev/null && echo timeshift)\""]
         stdout: StdioCollector {
             onStreamFinished: {
@@ -64,6 +66,7 @@ BarModule {
                 root.btPresent = (lines[3] ?? "") !== ""
                 root.btOn = lines[3] === "yes"
                 root.hasTimeshift = lines[4] === "timeshift"
+                root.hasButtertools = lines[5] === "buttertools"
             }
         }
     }
@@ -240,7 +243,7 @@ BarModule {
                           },
                           run: () => root.toggleBluetooth() } : null,
                         { icon: "󰔟", name: "Temporizador de enfoque",
-                          state: Pomodoro.running ? Pomodoro.fmt(Pomodoro.remaining) + " left"
+                          state: Pomodoro.running ? Pomodoro.fmt(Pomodoro.remaining) + " restante"
                                                   : Pomodoro.minutes + " min",
                           active: Pomodoro.running,
                           adjust: Pomodoro.running ? null : dir => Pomodoro.nudge(dir),
@@ -277,12 +280,15 @@ BarModule {
                           "sudo apt update && apt list --upgradable; " +
                           "qs -p \"$0\" ipc call updates check >/dev/null 2>&1; " +
                           "\"$1\" offer; " +
-                          "printf '\\ndone - press enter to close '; read _",
+                          "printf '\\nlisto - pulsa enter para cerrar '; read _",
                           Theme.configDir + "/quickshell", Theme.configDir + "/scripts/setup-update"]) },
                     // this setup, from its git clone: nothing checks on its own
                     { icon: "󰊢", label: "Actualizar butterdwm",
                       run: () => Quickshell.execDetached(["kitty", "-e",
                           Theme.configDir + "/scripts/setup-update"]) },
+                    // the butter projects: what is installed, and the rest
+                    root.hasButtertools ? { icon: "󱁤", label: "Buttertools",
+                      run: () => Quickshell.execDetached(["buttertools"]) } : null,
                     { icon: "󰌌", label: "Atajos de teclado",
                       run: () => BarIpc.call("settings", "open", "keybinds") },
                     { icon: "󰒓", label: "Configuración",

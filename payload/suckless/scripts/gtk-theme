@@ -1,0 +1,138 @@
+#!/bin/sh
+
+# gtk-theme — GTK and icons from a palette. wallpaper-theme runs it on every
+# pick; install.sh runs it once with the shipped palette, so GTK matches the
+# bar and kitty from the first login instead of from the first pick.
+#
+# usage: gtk-theme <bg> <altbg> <border> <primary> <alert> <green> <yellow> <magenta>
+#
+# wpgtk-style recolor: copy Orchis-Nord-Template and substitute its (fixed,
+# known) palette with ours. Text in Orchis-dark is white-alpha, so only
+# accents/surfaces need mapping. Two alternating theme names so xsettingsd
+# always sees a name change and live-restyles GTK3 apps.
+
+set -u
+
+[ $# -eq 8 ] || { echo "usage: gtk-theme <bg> <altbg> <border> <primary> <alert> <green> <yellow> <magenta>" >&2; exit 1; }
+BG="$1" ALTBG="$2" BORDER="$3" PRIMARY="$4" ALERT="$5" GREEN="$6" YELLOW="$7" MAGENTA="$8"
+
+# A session to restyle live, or an install with none: then nothing is
+# started (no daemon may outlive an install's chroot) and gsettings gets a
+# bus of its own so dconf still keeps the names for the first login
+LIVE=false
+[ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] && LIVE=true
+GSET="gsettings"
+[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && GSET="dbus-run-session -- gsettings"
+
+# the template lives in ~/.themes (theme installer) or /usr/share/themes
+# (butterrepo's orchis-gtk-theme-butter); the user copy wins
+GTK_SRC="$HOME/.themes/Orchis-Nord-Template"
+[ -d "$GTK_SRC" ] || GTK_SRC="/usr/share/themes/Orchis-Nord-Template"
+GTK3_CONF="$HOME/.config/gtk-3.0/settings.ini"
+
+# The substitutions below target the plain-Nord build's exact hexes. A missing
+# template (theme installer failed, or a config-only install) or a wrong build
+# would leave GTK silently unthemed - say so instead.
+problem() {
+    echo "gtk-theme: $1" >&2
+    $LIVE && notify-send -a "Wallpaper" -u critical "GTK sin tema" \
+        "$1 Vuelve a correr el instalador del tema:\ntheming/install_wallpaper_theme.sh"
+    exit 1
+}
+[ -d "$GTK_SRC" ] || problem "Falta Orchis-Nord-Template."
+grep -qi '#242932' "$GTK_SRC/gtk-3.0/gtk.css" 2>/dev/null \
+    || problem "Orchis-Nord-Template no es la versión Nord simple."
+
+rgb() { h=${1#\#}; printf '%d, %d, %d' \
+    "0x$(printf %s "$h" | cut -c1-2)" \
+    "0x$(printf %s "$h" | cut -c3-4)" \
+    "0x$(printf %s "$h" | cut -c5-6)"; }
+
+cur=$(sed -n 's/^gtk-theme-name=//p' "$GTK3_CONF" 2>/dev/null)
+[ "$cur" = "Orchis-Wallpaper" ] && NEW="Orchis-Wallpaper-B" || NEW="Orchis-Wallpaper"
+DST="$HOME/.themes/$NEW"
+mkdir -p "$HOME/.themes"
+rm -rf "$DST"
+cp -r "$GTK_SRC" "$DST"
+sed -i "s/^Name=.*/Name=$NEW/" "$DST/index.theme"
+
+# ANSI greens/yellows/magentas keep Orchis's semantic colors
+# wallpaper-tinted instead of collapsing onto primary.
+find "$DST/gtk-3.0" "$DST/gtk-4.0" \( -name '*.css' -o -name '*.svg' \) \
+    -exec sed -i \
+    -e "s/#89a3c2/$PRIMARY/gI"  -e "s/rgba(137, 163, 194/rgba($(rgb "$PRIMARY")/g" \
+    -e "s/#242932/$BG/gI"       -e "s/rgba(28, 31, 38/rgba($(rgb "$BG")/g" \
+    -e "s/#1c1f26/$BG/gI"       -e "s/rgba(22, 24, 29/rgba($(rgb "$BG")/g" \
+    -e "s/#1e222a/$BG/gI" \
+    -e "s/#333a47/$ALTBG/gI" \
+    -e "s/#363c49/$BORDER/gI" \
+    -e "s/#d4878f/$ALERT/gI"    -e "s/rgba(212, 135, 143/rgba($(rgb "$ALERT")/g" \
+    -e "s/#8bd9b4/$GREEN/gI" \
+    -e "s/#eac985/$YELLOW/gI" \
+    -e "s/#c89dbf/$MAGENTA/gI" \
+    {} +
+
+# a first run seeds the file the theme installer would have
+if [ -f "$GTK3_CONF" ]; then
+    sed -i "s/^gtk-theme-name=.*/gtk-theme-name=$NEW/" "$GTK3_CONF"
+else
+    mkdir -p "$(dirname "$GTK3_CONF")"
+    printf '[Settings]\ngtk-theme-name=%s\ngtk-icon-theme-name=Colloid-Nord-Dark\n' "$NEW" > "$GTK3_CONF"
+fi
+
+# Icons — pick the installed Colloid variant whose folders are nearest
+# the palette's primary hue (selection, not recoloring). The folders
+# decide, not the names: reds, golds and yellows take Orange's (the only
+# warm ones; Gruvbox's are sage), purples Purple's, pinks Pink's; a
+# muted blue Nord's slate (#89a3c2), a vivid one Colloid's sky blue.
+# Gray for washed-out palettes. Skipped if not installed.
+R=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c1-2)")
+G=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c3-4)")
+B=$(printf '%d' "0x$(printf %s "${PRIMARY#\#}" | cut -c5-6)")
+# shellcheck disable=SC2046  # splits into HUE and SAT
+set -- $(awk -v r="$R" -v g="$G" -v b="$B" 'BEGIN{
+    mx=r; if(g>mx)mx=g; if(b>mx)mx=b
+    mn=r; if(g<mn)mn=g; if(b<mn)mn=b
+    d=mx-mn
+    if(d==0 || mx==0){print "0 0"; exit}
+    if(mx==r) h=(g-b)/d; else if(mx==g) h=2+(b-r)/d; else h=4+(r-g)/d
+    h*=60; if(h<0)h+=360
+    printf "%d %d", h, (d/mx)*100}')
+HUE=$1; SAT=$2
+if   [ "$SAT" -lt 15 ]; then ICONS="Colloid-Grey-Dracula-Dark"
+elif [ "$HUE" -lt 95 ];  then ICONS="Colloid-Orange-Dark"
+elif [ "$HUE" -lt 165 ]; then ICONS="Colloid-Everforest-Dark"
+elif [ "$HUE" -lt 245 ] && [ "$SAT" -lt 45 ]; then ICONS="Colloid-Nord-Dark"
+elif [ "$HUE" -lt 245 ]; then ICONS="Colloid-Dark"
+elif [ "$HUE" -lt 315 ]; then ICONS="Colloid-Purple-Dark"
+else ICONS="Colloid-Pink-Dark"; fi
+HAVE_ICONS=false
+if [ -d "$HOME/.local/share/icons/$ICONS" ] || [ -d "/usr/share/icons/$ICONS" ]; then
+    HAVE_ICONS=true
+    sed -i "s/^gtk-icon-theme-name=.*/gtk-icon-theme-name=$ICONS/" "$GTK3_CONF"
+    [ -f "$HOME/.xsettingsd" ] && \
+        sed -i "s|^Net/IconThemeName .*|Net/IconThemeName \"$ICONS\"|" "$HOME/.xsettingsd"
+fi
+
+if [ -f "$HOME/.xsettingsd" ]; then
+    sed -i "s|^Net/ThemeName .*|Net/ThemeName \"$NEW\"|" "$HOME/.xsettingsd"
+    if $LIVE; then
+        pkill -x xsettingsd 2>/dev/null || true
+        xsettingsd >/dev/null 2>&1 9>&- &
+    fi
+fi
+
+# Portal-using apps (GTK4/libadwaita, flatpaks) ask the settings portal,
+# which reads gsettings rather than xsettingsd — keep it in step so they
+# restyle too. Native X11 GTK3 keeps following xsettingsd as before.
+if command -v gsettings >/dev/null 2>&1; then
+    $GSET set org.gnome.desktop.interface gtk-theme "$NEW" 2>/dev/null || true
+    $HAVE_ICONS && { $GSET set org.gnome.desktop.interface icon-theme "$ICONS" 2>/dev/null || true; }
+    $GSET set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null || true
+fi
+
+# GTK4/libadwaita reads ~/.config/gtk-4.0 directly (new apps pick it up)
+mkdir -p "$HOME/.config/gtk-4.0"
+for f in assets gtk.css gtk-dark.css; do
+    ln -sfn "$DST/gtk-4.0/$f" "$HOME/.config/gtk-4.0/$f"
+done

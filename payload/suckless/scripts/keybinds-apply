@@ -45,5 +45,5 @@ if sudo -n "$INSTALL" >/dev/null 2>&1; then
 else
     # shellcheck disable=SC2016  # $0 is the helper, expanded by that sh
     exec kitty --class keybinds-apply -e sh -c \
-        'sudo "$0" && pkill -HUP -x dwm && xprop -root -f _DWM_WAKE 32c -set _DWM_WAKE 1 && exit 0; printf "\npress enter to close "; read _' "$INSTALL"
+        'sudo "$0" && pkill -HUP -x dwm && xprop -root -f _DWM_WAKE 32c -set _DWM_WAKE 1 && exit 0; printf "\npulsa enter para cerrar "; read _' "$INSTALL"
 fi

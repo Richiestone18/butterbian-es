@@ -175,7 +175,7 @@ Popout {
                    "sudo apt update && apt list --upgradable; " +
                    "qs -p \"$0\" ipc call updates check >/dev/null 2>&1; " +
                    "\"$1\" offer; " +
-                   "printf '\\ndone - press enter to close '; read _",
+                   "printf '\\nlisto - pulsa enter para cerrar '; read _",
                    Theme.configDir + "/quickshell", Theme.configDir + "/scripts/setup-update"])),
         action("update-setup", "Actualizar butterdwm", "󰊢", "actualizar configuración butterdwm git pull install upgrade config",
                () => Quickshell.execDetached(["kitty", "-e", Theme.configDir + "/scripts/setup-update"])),
@@ -186,7 +186,7 @@ Popout {
         action("about", "Acerca de este sistema", "󰋼", "información del sistema fastfetch versión hardware specs",
                () => Quickshell.execDetached(["kitty", "-e", "sh", "-c",
                    "fastfetch || echo 'fastfetch is not installed: sudo apt install fastfetch'; " +
-                   "printf '\\npress enter to close '; read _"]))
+                   "printf '\\npulsa enter para cerrar '; read _"]))
     ]
 
     centered: true

@@ -1,11 +1,11 @@
-# descripcion original (ingles)	descripcion en espanol   · butterdwm d63645d72a49
+# original description (English)	description in Spanish   · butterdwm 35da28a3f34b
 !Terminal	!Terminal
 !App launcher (the bar's; rofi when the bar is down)	!Lanzador de apps (rofi si no hay barra)
-Browser	Navegador
+Browser	Browser
 Browser (private window)	Navegador (ventana privada)
 File manager	Gestor de archivos
 Editor	Editor
-Keybindings	Atajos de teclado
+Keybindings	Keybindings
 !Window switcher (the bar's; rofi when the bar is down)	!Cambiar de ventana (rofi si no hay barra)
 Wallpaper picker (re-themes the desktop from the image)	Elegir fondo (y los colores del escritorio)
 Command menu	Menú de comandos
@@ -17,7 +17,7 @@ Focus next window	Enfocar ventana siguiente
 Focus previous window	Enfocar ventana anterior
 Move window down the stack	Bajar ventana en la pila
 Move window up the stack	Subir ventana en la pila
-Fullscreen	Pantalla completa
+Fullscreen	Fullscreen
 Toggle floating	Alternar flotante
 Sticky (show on all tags)	Fijar (mostrar en todas las etiquetas)
 Window follows on tag / monitor send	Seguir la ventana al enviarla a otra etiqueta o monitor

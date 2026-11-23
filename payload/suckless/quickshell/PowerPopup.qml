@@ -16,13 +16,13 @@ Popout {
     property int armed: -1
 
     readonly property var actions: [
-        { key: "o", icon: "󰌢", label: "Apagar pantalla",
+        { key: "p", icon: "󰌢", label: "Apagar pantalla",
           run: () => Quickshell.execDetached([Theme.configDir + "/scripts/screen-off"]) },
-        { key: "e", icon: "󰍃", label: "Cerrar sesión", confirm: "¿Cerrar sesión?",
+        { key: "c", icon: "󰍃", label: "Cerrar sesión", confirm: "¿Cerrar sesión?",
           run: () => Wm.logout() },
         { key: "r", icon: "󰜉", label: "Reiniciar", confirm: "¿Reiniciar?",
           run: () => Quickshell.execDetached(["systemctl", "reboot"]) },
-        { key: "s", icon: "󰐥", label: "Apagar", confirm: "¿Apagar?",
+        { key: "a", icon: "󰐥", label: "Apagar", confirm: "¿Apagar?",
           run: () => Quickshell.execDetached(["systemctl", "poweroff"]) }
     ]
 
@@ -153,7 +153,8 @@ Popout {
                     Txt {
                         id: hintText
                         anchors.centerIn: parent
-                        text: row.armed ? "otra vez para confirmar" : row.modelData.key.toUpperCase()
+                        text: row.armed ? "confirmar" : row.modelData.key.toUpperCase()
+                        font.pixelSize: row.armed ? 10 : 11
                         color: row.armed ? Theme.bg : Qt.alpha(Theme.fg, 0.7)
                     }
                 }

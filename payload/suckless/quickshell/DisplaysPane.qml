@@ -555,7 +555,7 @@ Item {
             anchors.right: parent.right
             anchors.top: parent.top
             text: root.keepLeft > 0 ? "¿mantener estos ajustes?  se revierte en " + root.keepLeft + " s"
-                : root.busy ? "applying…" : root.status
+                : root.busy ? "aplicando..." : root.status
             color: root.keepLeft > 0 ? Theme.fg
                  : root.status !== "" && root.status !== "reverted" && !root.status.startsWith("kept") ? Theme.red
                  : Qt.alpha(Theme.fg, 0.5)

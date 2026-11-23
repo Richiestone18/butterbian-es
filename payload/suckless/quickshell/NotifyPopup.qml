@@ -9,7 +9,7 @@ Popout {
     id: root
 
     cardWidth: 340
-    cardHeight: Math.min(64 + list.contentHeight, 430)
+    cardHeight: Math.min(48 + 2 * cardPadding + (notifs.length > 0 ? 8 + list.contentHeight : 0), 430)
 
     property var notifs: []
     property real uptimeSecs: 0
@@ -79,37 +79,25 @@ Popout {
         }
     }
 
-    // header: title + clear all
-    Item {
+    // header: the bell, how many were missed, clear all
+    PopupHeader {
         id: header
-        anchors.left: parent.left
-        anchors.right: parent.right
         anchors.top: parent.top
-        height: 22
+        glyph: root.notifs.length > 0 ? "󰂚" : "󰂜"
+        glyphColor: root.notifs.length > 0 ? Theme.yellow : Qt.alpha(Theme.fg, 0.45)
+        title: "Notificaciones"
+        subtitle: root.notifs.length === 0 ? "nada pendiente" : root.notifs.length + " pendientes"
 
-        Txt {
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            text: "Notificaciones"
-            color: Theme.accent
-            font.pixelSize: 12
-            font.bold: true
-        }
-        Txt {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
+        Btn {
             visible: root.notifs.length > 0
+            glyph: "󰎟"
             text: "Limpiar todo"
-            color: clearMa.containsMouse ? Theme.fg : Qt.alpha(Theme.fg, 0.5)
-            MouseArea {
-                id: clearMa
-                anchors.fill: parent
-                anchors.margins: -4
-                hoverEnabled: true
-                onClicked: {
-                    Quickshell.execDetached(["dunstctl", "history-clear"])
-                    reHist.restart()
-                }
+            padding: 36
+            restColor: Qt.alpha(Theme.fg, 0.07)
+            ink: Theme.fg
+            onClicked: {
+                Quickshell.execDetached(["dunstctl", "history-clear"])
+                reHist.restart()
             }
         }
     }
@@ -128,13 +116,6 @@ Popout {
             id: notifCol
             width: parent.width
             spacing: 6
-
-            Txt {
-                visible: root.notifs.length === 0
-                text: "No hay nada pendiente"
-                color: Qt.alpha(Theme.fg, 0.35)
-                topPadding: 6
-            }
 
             Repeater {
                 model: root.notifs

@@ -378,12 +378,26 @@ Popout {
         anchors.right: parent.right
         spacing: 10
 
+        // what it is, with the temperatures (red when one runs hot)
+        PopupHeader {
+            readonly property var parts: [
+                { name: "CPU", c: root.temps.cpu, hot: 85 },
+                { name: "GPU", c: root.temps.gpu, hot: 85 },
+                { name: "NVMe", c: root.temps.drive, hot: 70 }
+            ].filter(x => x.c !== undefined)
+            glyph: "󰍛"
+            title: "Sistema"
+            subtitle: parts.length > 0 ? parts.map(x => x.name + " " + x.c + "°").join("  ·  ")
+                    : root.load !== "" ? "carga " + root.load : ""
+            subtitleColor: parts.some(x => x.c >= x.hot) ? Theme.red : Qt.alpha(Theme.fg, 0.55)
+        }
+
         Meter {
             tag: "CPU"
             tint: Theme.red
             // the bar's own number, so card and bar always agree
             value: Sys.cpu
-            detail: root.load !== "" ? "load " + root.load : ""
+            detail: root.load !== "" ? "carga " + root.load : ""
         }
         Meter {
             tag: "RAM"
@@ -391,36 +405,6 @@ Popout {
             value: root.memTotal > 0 ? 100 * (1 - root.memAvail / root.memTotal) : Sys.mem
             detail: root.memTotal > 0
                 ? root.mem(root.memTotal - root.memAvail) + " / " + root.mem(root.memTotal) : ""
-        }
-
-        // one reading per part, red when it's running hot
-        Row {
-            visible: root.temps.cpu !== undefined || root.temps.gpu !== undefined
-                     || root.temps.drive !== undefined
-            spacing: 14
-
-            Repeater {
-                model: [
-                    { name: "CPU", c: root.temps.cpu, hot: 85 },
-                    { name: "GPU", c: root.temps.gpu, hot: 85 },
-                    { name: "NVMe", c: root.temps.drive, hot: 70 }
-                ].filter(x => x.c !== undefined)
-
-                Row {
-                    id: tempItem
-                    required property var modelData
-                    spacing: 5
-                    Txt {
-                        text: tempItem.modelData.name
-                        color: Qt.alpha(Theme.fg, 0.5)
-                    }
-                    Txt {
-                        text: tempItem.modelData.c + "°"
-                        color: tempItem.modelData.c >= tempItem.modelData.hot ? Theme.red : Theme.fg
-                        font.bold: tempItem.modelData.c >= tempItem.modelData.hot
-                    }
-                }
-            }
         }
 
         // local disks, the same meter as CPU and RAM
@@ -700,19 +684,15 @@ Popout {
             }
         }
 
-        Rectangle { width: parent.width; height: 1; color: Qt.alpha(Theme.fg, 0.15) }
+        Rectangle { width: parent.width - 8; anchors.horizontalCenter: parent.horizontalCenter; height: 1; color: Qt.alpha(Theme.fg, 0.15) }
 
-        Btn {
-            width: parent.width
-            height: 30
+        ListRow {
+            height: 34
+            glyphSize: 15
+            fontSize: 13
+            glyphWidth: 0
             glyph: "󰍛"
-            glyphSize: 14
-            text: "Abrir btop"
-            fontSize: 12
-            spacing: 8
-            ink: Qt.alpha(Theme.fg, 0.9)
-            restColor: "transparent"
-            hoverColor: Qt.alpha(Theme.fg, 0.12)
+            text: "Monitor del sistema (btop)"
             onClicked: root.openBtop()
         }
     }
