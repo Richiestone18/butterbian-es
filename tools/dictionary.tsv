@@ -58,9 +58,11 @@ quickshell-network/shell.qml	"offline"	"sin conexión"	note: modelData.online ? 
 quickshell-network/shell.qml	"on · external"	"activa · externa"	text: vr.active ? "S" : "S"
 quickshell-network/shell.qml	"opening tailscale login…"	"abriendo el inicio de sesión de Tailscale…"	'printf "S" "S" >&2; exit 1'], "S")
 quickshell-network/shell.qml	"pair new"	"emparejar nuevo"	label: win.btScanning ? "S" : "S"
+quickshell-network/shell.qml	"pair"	"emparejar"	note: "S"
 quickshell-network/shell.qml	"pairing "	"emparejando "	"S" + d.name + "S")
 quickshell-network/shell.qml	"password needed for "	"se necesita la contraseña de "	win.status = "S" + win.trying.ssid
 quickshell-network/shell.qml	"password"	"contraseña"	label: win.shareShowPw ? "S" : "S"
+quickshell-network/shell.qml	"password"	"contraseña"	property string placeholder: "S"
 quickshell-network/shell.qml	"password, if any"	"contraseña, si tiene"	placeholder: "S"
 quickshell-network/shell.qml	"pick a network below"	"elige una red abajo"	: wifiOn ? "S" : "S"
 quickshell-network/shell.qml	"point a phone camera here to join"	"apunta la cámara del teléfono aquí para unirte"	text: "S"
@@ -142,12 +144,16 @@ quickshell/DisplaysPane.qml	"Enabled"	"Habilitado"	Label { anchors.left: parent.
 quickshell/DisplaysPane.qml	"Refresh rate"	"Tasa de actualización"	label: "S"
 quickshell/DisplaysPane.qml	"Resolution"	"Resolución"	label: "S"
 quickshell/DisplaysPane.qml	"Rotation"	"Rotación"	Label { text: "S" }
+quickshell/DisplaysPane.qml	"apply"	"aplicar"	text: "S"
 quickshell/DisplaysPane.qml	"applying…"	"aplicando..."	: root.busy ? "S" : root.status
 quickshell/DisplaysPane.qml	"at "	"en "	text: "S" + mon.modelData.x + "S" + mon.modelData.y
 quickshell/DisplaysPane.qml	"drag a display to arrange"	"arrastra una pantalla para ordenarlas"	["S", root.live.length > 1 ? "S" : "S"]
+quickshell/DisplaysPane.qml	"identify"	"identificar"	text: "S"
 quickshell/DisplaysPane.qml	"keep these settings?  reverting in "	"¿mantener estos ajustes?  se revierte en "	text: root.keepLeft > 0 ? "S" + root.keepLeft + "S"
+quickshell/DisplaysPane.qml	"keep"	"mantener"	text: "S"
 quickshell/DisplaysPane.qml	"kept · restored on every start"	"guardado · se restaura en cada arranque"	status = "S"
 quickshell/DisplaysPane.qml	"max resolution"	"resolución máxima"	["S", root.cur.maxRes.w + "S" + root.cur.maxRes.h],
+quickshell/DisplaysPane.qml	"revert"	"revertir"	text: "S"
 quickshell/DisplaysPane.qml	"xrandr failed"	"xrandr falló"	root.status = root._err.length ? root._err[root._err.length - 1] : "S"
 quickshell/DisplaysPane.qml	"xrandr gave nothing to read"	"xrandr no devolvió nada"	try { j = JSON.parse(text) } catch (e) { status = "S"; return }
 quickshell/EditorPanel.qml	"Cancel"	"Cancelar"	EditButton { label: "S"; onClicked: panel.cancel() }
@@ -294,6 +300,7 @@ quickshell/RulesPane.qml	"centered"	"centrada"	Switch { label: "S"; on: root.cen
 quickshell/RulesPane.qml	"class"	"clase"	EditField { id: classField; width: 200; placeholder: "S"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
 quickshell/RulesPane.qml	"click a rule to edit it · right-click opens the file"	"clic en una regla para editarla · clic derecho abre el archivo"	text: root.status !== "S" ? root.status : "S"
 quickshell/RulesPane.qml	"command that opens it, e.g. kitty --name notes"	"comando que lo abre, p.ej. kitty --name notes"	EditField { id: runField; width: 420; placeholder: "S"; onAccepted: root.save(); onEscaped: root.cancelEdit() }
+quickshell/RulesPane.qml	"current"	"actual"	Pill { text: "S"; active: root.monitor === "S"; onClicked: root.monitor = "S" }
 quickshell/RulesPane.qml	"edit match"	"editar coincidencia"	text: root.showMatch ? "S" : (root.matchText === "S" ? "S" : "S")
 quickshell/RulesPane.qml	"floating"	"flotante"	Switch { label: "S"; on: root.floating; onToggled: { root.floating = !root.floating; if (!root.floating) root.centered = false } }
 quickshell/RulesPane.qml	"hide match fields"	"ocultar campos de coincidencia"	text: root.showMatch ? "S" : (root.matchText === "S" ? "S" : "S")
@@ -397,7 +404,9 @@ quickshell/WeatherPopup.qml	"auto · "	"automático · "	{ value: "S", label: "S
 quickshell/WeatherPopup.qml	"auto"	"automático"	text: "S"
 quickshell/WeatherPopup.qml	"couldn't get it"	"no se pudo obtener"	? "S" + (root.location !== "S" ? "S" + root.location + "S" : "S")
 quickshell/WeatherPopup.qml	"feels like"	"sensación térmica"	Stat { glyph: "S"; value: root.feels + "S"; name: "S" }
+quickshell/WeatherPopup.qml	"humidity"	"humedad"	Stat { glyph: "S"; value: WeatherData.humidity; name: "S" }
 quickshell/WeatherPopup.qml	"weather by open-meteo.com"	"clima por open-meteo.com"	text: "S"
+quickshell/WeatherPopup.qml	"wind"	"viento"	Stat { glyph: "S"; value: root.wind; name: "S" }
 quickshell/Wm.qml	"Sent windows are followed"	"Las ventanas enviadas se siguen"	"S", f ? "S" : "S"])
 quickshell/Wm.qml	"Sent windows stay put"	"Las ventanas enviadas se quedan"	"S", f ? "S" : "S"])
 quickshell/Wm.qml	"Window follow"	"Seguir ventana"	"S", f ? "S" : "S"])

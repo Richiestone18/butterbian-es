@@ -5,7 +5,10 @@ into Spanish (es_MX): dwm with the **Quickshell** bar, on Debian 13. It covers
 the bar, the network app, the shortcut help (`Super+/`) and the messages of its
 scripts. It also applies fixes so the bar works well in Spanish.
 
-**Version 8**: built and tested on butterdwm `35da28a` (November 20, 2026).
+**Version 9**: built and tested on butterdwm `e3f9958` (November 23, 2026).
+It also ships `traducir-en-vivo.sh`, a translator that works on **any**
+butterdwm version without replacing files (see `TRADUCIR-EN-VIVO.md`).
+Version 8 was built on `35da28a` (November 20, 2026).
 It also migrates a machine that already had version 6 or 7: a file that is an
 *earlier* translation of this package (`translated-before.tsv`) is
 re-translated instead of being left as is. Your own edits are still kept.
@@ -102,11 +105,12 @@ translated, something stops working:
 
 ## If your butterdwm is newer
 
-`--check` tells you how many files do not match this package's version. They
-stay in English, without breaking anything, until there is a butterbian-es
-version for your butterdwm. The `tools/` folder has the generator (accumulated
-dictionary + build + regenerate.sh) to make one in a single command;
-see `tools/README.md`.
+If `--check` reports files that do not match this package's version, run
+`./traducir-en-vivo.sh` instead: it translates the installed files in place
+without replacing any file, and works on any version. Unknown new strings are
+reported, and can be taught with `--add`. See `TRADUCIR-EN-VIVO.md`. The
+`tools/` folder still has the generator to rebuild a versioned package:
+`bash tools/regenerate.sh --new <commit>`.
 
 ## Notes
 
@@ -116,6 +120,14 @@ see `tools/README.md`.
 
 ## Changelog
 
+- **v9** (2026-11-24):
+  - rebuilt on butterdwm `e3f9958`: the network app's new texts are translated
+    without copying a newer payload over the installed files;
+  - new `traducir-en-vivo.sh`: translates installed files in place, any
+    version, no file replacement, backups, `--check`, `--restore`, `--verbose`,
+    `--add` to teach new strings;
+  - shipped data files for the live translator: `rules_extra.tsv`,
+    `revert.tsv`, `ignore.tsv`; 16/16 tests on a real copy of the desktop.
 - **v8** (2026-11-22): the last texts that were still in English:
   - the displays panel's buttons (`identificar / aplicar / revertir /
     mantener`) and its `revertido` status (the word it compares stays
@@ -163,12 +175,13 @@ see `tools/README.md`.
 
 ```
 install.sh                   one-line installer (downloads the repo and runs the script)
+traducir-en-vivo.sh          translate installed files, any version, no replacement
 translate-butterbian-es.sh   apply / --check / --restore
 manifest.txt                 sha256 of the original and the translated file of each file
 shortcuts.tsv                shortcut descriptions: English -> Spanish
 payload/suckless/            the 47 translated files
 translated-before.tsv        sha256 of the Spanish files earlier versions installed
-tools/                       v6 generator (v7 package) (accumulated dictionary + build + regenerate.sh)
+tools/                       v6 generator (v9 package) + live translator (accumulated dictionary + build + regenerate.sh)
 work/                        butterdwm clone and translation staging (created by regenerate.sh)
 ```
 

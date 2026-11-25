@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# translate-butterbian-es.sh  (v7)
+# translate-butterbian-es.sh  (v9)
 # --------------------------------------------------------------------------
 # Spanish (es_MX) translation of butterdwm: dwm + the Quickshell bar by
 # JustAGuy Linux, on Debian 13.

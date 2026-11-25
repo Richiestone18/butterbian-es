@@ -6,7 +6,7 @@ import Quickshell.Io
 // instance. Top to bottom: the connection you're on and how it's doing,
 // VPNs (Tailscale with its exit nodes and the tailnet's devices, a click
 // on one opens ssh to it), known then new Wi-Fi, Bluetooth (right-click
-// forgets; pairing that needs a PIN is blueman's job), then rescan and
+// forgets; a keyboard's passkey shows in the status line), then rescan and
 // advanced settings.
 // Sized to its content up to 80% of the screen, scrolling past that.
 ShellRoot {
@@ -786,13 +786,80 @@ ShellRoot {
                 "olvidando " + d.name + "…")
         }
 
-        // PIN-less pair+trust+connect; devices that want a PIN fail here
-        // and belong in blueman
+        // Pair, trust and connect in one bluetoothctl session. Its agent is
+        // what BlueZ asks during pairing, and its scan stays on so the device
+        // is known when `pair` runs: BlueZ forgets an unpaired device 30 s
+        // after a scan ends. One-shot `bluetoothctl pair` has neither, and
+        // fails with "not available" or AuthenticationFailed.
+        // Commands wait for the session: until its agent has registered,
+        // `default-agent` is refused and a keyboard gets no passkey. Devices
+        // in pairing mode can advertise from a new address (Keychron mice
+        // and keyboards do), so one the scan doesn't see again by address is
+        // looked up by name.
+        // A keyboard gets a passkey to type (shown in the status line); a
+        // device asking to confirm a matching code gets a yes (pairing was
+        // asked for here); mice and headsets pair without either. A failed
+        // attempt is removed, not left connected but unpaired. Exit 0 means
+        // paired. $1 is the address from the scan, $2 the name.
+        readonly property string _btPairScript:
+            "m=$1; name=$2; log=$(mktemp); trap 'rm -f \"$log\"' EXIT\n" +
+            "known() { bluetoothctl info \"$m\" >/dev/null 2>&1; }\n" +
+            "paired() { bluetoothctl info \"$m\" 2>/dev/null | grep -q 'Paired: yes'; }\n" +
+            "wait_for() { i=0; until grep -q \"$1\" \"$log\" || [ $i -ge 20 ]; do sleep 0.25; i=$((i+1)); done; }\n" +
+            "{\n" +
+            "  wait_for 'Agent registered'; echo 'default-agent'\n" +
+            "  wait_for 'Default agent'; echo 'scan on'\n" +
+            "  i=0; until known || [ $i -ge 20 ]; do sleep 0.5; i=$((i+1)); done\n" +
+            "  if ! known; then\n" +
+            "    n=$(bluetoothctl devices | awk -v n=\"$name\" '{a=$2; $1=\"\"; $2=\"\"; sub(/^  /, \"\"); if ($0 == n) print a}' | tail -1)\n" +
+            "    [ -n \"$n\" ] && m=$n && echo \"[butter] $name is at $m now\" >>\"$log\"\n" +
+            "  fi\n" +
+            "  echo \"pair $m\"; said=no\n" +
+            "  i=0; until paired || grep -q 'Failed to pair\\|not available' \"$log\" || [ $i -ge 120 ]; do\n" +
+            "    if [ $said = no ] && grep -q 'Confirm passkey' \"$log\"; then echo yes; said=yes; fi\n" +
+            "    sleep 0.5; i=$((i+1))\n" +
+            "  done\n" +
+            "  if paired; then echo \"trust $m\"; sleep 1; echo \"connect $m\"; sleep 4; fi\n" +
+            "  echo 'scan off'; echo 'quit'\n" +
+            "  echo \"$m\" >\"$log.mac\"\n" +
+            "} | bluetoothctl 2>&1 | tee \"$log\"\n" +
+            "m=$(cat \"$log.mac\" 2>/dev/null || echo \"$m\"); rm -f \"$log.mac\"\n" +
+            "paired && exit 0\n" +
+            "bluetoothctl remove \"$m\" >/dev/null 2>&1\n" +
+            "exit 1\n"
+
+        property string _btPairName: ""
+        property string _btPairErr: ""
+        Process {
+            id: btPairProc
+            stdout: SplitParser {
+                onRead: line => {
+                    const l = line.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "").trim()
+                    const key = l.match(/(?:Passkey|PIN code):?\s*(\d{4,6})/i)
+                    if (key)
+                        win.status = "type " + key[1] + " on " + win._btPairName
+                            + ", then Enter"
+                    else if (/Failed to pair|not available|org\.bluez\.Error/.test(l))
+                        win._btPairErr = l.replace(/^.*?(Failed|Device|org\.bluez)/, "$1")
+                }
+            }
+            onExited: (code, st) => {
+                win.busy = false
+                win.status = code === 0 ? "paired " + win._btPairName
+                    : (win._btPairErr || "pairing " + win._btPairName + " failed")
+                win.refresh(false)
+            }
+        }
+
         function btPairNew(d) {
-            run(["sh", "-c", "bluetoothctl pair " + d.mac +
-                 " && bluetoothctl trust " + d.mac +
-                 " && bluetoothctl connect " + d.mac],
-                "emparejando " + d.name + "…")
+            if (busy)
+                return
+            busy = true
+            _btPairName = d.name
+            _btPairErr = ""
+            status = "emparejando " + d.name + "…"
+            btPairProc.command = ["sh", "-c", _btPairScript, "sh", d.mac, d.name]
+            btPairProc.running = true
             btFound = btFound.filter(f => f.mac !== d.mac)
         }
 

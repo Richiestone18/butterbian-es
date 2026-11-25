@@ -1,7 +1,7 @@
-# butterbian-es v8 · butterdwm 35da28a3f34b (2026-11-20)
+# butterbian-es v9 · butterdwm e3f995870d37 (2026-11-23)
 # sha256 of the English original · sha256 of the translated · path in ~/.config/suckless
 # A file is only replaced if it is IDENTICAL to the original of that version.
-3af862211486235920f3b8e5ef5c24072d0ae3fdb5f8aa1adc132d48595ba38b 8c35035a85b532beed8ca3a357c3df1a4456569eea70903b6f06f5157d9e82c2 quickshell-network/shell.qml
+9a871ba224fa659a326524418a40d2b96cf8b5ffba2d7e59e395d665cfd115a3 267b1f4a31b8780329ca3dab48f6de81286dccea44f17825e944237d7ad88b76 quickshell-network/shell.qml
 0d4df5041438f12e02e503cc2c6f9275f3d3df0e4eeb880419e0d7010b5cfca9 9df4bf98a02842b3ab766d29784c7c63838a8a66e21ad7ae839250ccad10092d quickshell/BarTweaks.qml
 383991116c6e4d3bf31db2d81ab7e722cf86709d5205d62bbe7bd3c817ab17e7 37263a114dd05bb93d4b03b2b23093cadadd1ea987fbbf100cfd30b1679e1578 quickshell/Batteries.qml
 5254853232d3340ebc65e47e651ff6a512c60f17a4e19aca871f81096b22c97d 11ee9431e01ec710eb3db8f8af41e907c5384a60e8e0f23b84f31eab12dda385 quickshell/CalendarPopup.qml
