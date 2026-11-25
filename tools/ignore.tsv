@@ -1,0 +1,30 @@
+# Textos que NO se traducen a proposito (datos, estados de servicios, teclas).
+# Uno por linea; se comparan literales, ignorando las comillas.
+Running
+Network
+butterdwm settings
+Settings
+CRITICAL
+LOW
+NORMAL
+IN-USE,SIGNAL
+KILL
+Package id 0
+Composite
+Unknown
+Charging
+Full
+Return
+Left
+Right
+Prior
+Next
+Space
+Escape
+Tab
+BackSpace
+fail
+Error
+Bluetooth
+NeedsLogin
+Access denied

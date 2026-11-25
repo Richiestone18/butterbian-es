@@ -1,0 +1,8 @@
+# never translate lines matching these regexes: file\tregex
+quickshell/ChordField.qml	Qt\.Key_
+quickshell/MetricsPopup.qml	"(Package id 0|Composite|KILL)"
+quickshell/NotifyPopup.qml	urgency ===
+quickshell/Sys.qml	IN-USE,SIGNAL
+quickshell/LauncherPopup.qml	categories\.includes
+quickshell/DisplaysPane.qml	!== "Unknown"
+quickshell-network/shell.qml	indexOf\("(fail|Error)"\)
